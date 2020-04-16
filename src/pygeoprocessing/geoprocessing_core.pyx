@@ -1503,6 +1503,9 @@ def raster_optimization(
             normalized_raster_band_path_list[i][1], 0)
         for i in range(n_rasters)])
 
+    # need a fast sum here
+    cdef double[:] raster_sum_array = raster_sum_list.copy()
+
     # sort base rasters and the normalized sum
     heapfile_directory_list = []
     for raster_index, raster_path_band in enumerate(
@@ -1598,7 +1601,7 @@ def raster_optimization(
                 FastFileIteratorIndexCompare[double])
 
         # define the max prop list for that raster based on the desired target
-        if raster_sum_list[raster_index] > 0:
+        if raster_sum_array[raster_index] > 0:
             prop_to_meet_vals[raster_index] = 1.0
         else:
             prop_to_meet_vals[raster_index] = 0.0
@@ -1689,7 +1692,7 @@ def raster_optimization(
                         running_goal_sum_array[i] += active_val
                         prop_to_meet_vals[i] = (
                             1.0 - running_goal_sum_array[i]) / (
-                            raster_sum_list[i])
+                            raster_sum_array[i])
                         if (prop_to_meet_vals[i] > 0 and
                                 prop_to_meet_vals[i] < min_working_prop):
                             min_working_prop = prop_to_meet_vals[i]
