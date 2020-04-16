@@ -468,7 +468,7 @@ def _distance_transform_edt(
     nodata placement and thus produces a raster that will have distance
     transform values even in pixels that are nodata in the base.
 
-    Parameters:
+    Args:
         region_raster_path (string): path to a byte raster where region pixels
             are indicated by a 1 and 0 otherwise.
         g_raster_path (string): path to a raster created by this call that
@@ -694,7 +694,7 @@ def calculate_slope(
     no inline pixel is defined, we use `e` and multiply the difference by
     2^0.5 to account for the diagonal projection.
 
-    Parameters:
+    Args:
         base_elevation_raster_path_band (string): a path/band tuple to a
             raster of height values. (path_to_raster, band_index)
         target_slope_path (string): path to target slope raster; will be a
@@ -929,7 +929,7 @@ def calculate_slope(
 def stats_worker(stats_work_queue, exception_queue):
     """Worker to calculate continuous min, max, mean and standard deviation.
 
-    Parameters:
+    Args:
         stats_work_queue (Queue): a queue of 1D numpy arrays or None. If
             None, function puts a (min, max, mean, stddev) tuple to the
             queue and quits.
@@ -1003,7 +1003,7 @@ def raster_band_percentile(
         heap_buffer_size=2**28, ffi_buffer_size=2**10):
     """Calculate percentiles of a raster band.
 
-    Parameters:
+    Args:
         base_raster_path_band (tuple): raster path band tuple to a raster
             that is of any integer or real type.
         working_sort_directory (str): path to a directory that does not
@@ -1050,7 +1050,7 @@ def _raster_band_percentile_int(
         heap_buffer_size, ffi_buffer_size):
     """Calculate percentiles of a raster band of an integer type.
 
-    Parameters:
+    Args:
         base_raster_path_band (tuple): raster path band tuple to a raster that
             is of an integer type.
         working_sort_directory (str): path to a directory that does not
@@ -1195,7 +1195,7 @@ def _raster_band_percentile_double(
         heap_buffer_size, ffi_buffer_size):
     """Calculate percentiles of a raster band of a real type.
 
-    Parameters:
+    Args:
         base_raster_path_band (tuple): raster path band tuple to raster that
             is a real/float type.
         working_sort_directory (str): path to a directory that does not

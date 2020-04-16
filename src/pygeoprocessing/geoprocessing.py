@@ -105,7 +105,7 @@ def raster_calculator(
     rasters' pixel stack. The rasters in ``base_raster_path_band_list`` must
     be spatially aligned and have the same cell sizes.
 
-    Parameters:
+    Args:
         base_raster_path_band_const_list (sequence): a sequence containing
             either (str, int) tuples, ``numpy.ndarray``s of up to two
             dimensions, or an (object, 'raw') tuple.  A ``(str, int)``
@@ -519,7 +519,7 @@ def align_and_resize_raster_stack(
     clipping or resizing the rasters to intersected, unioned, or equivocated
     bounding boxes of all the raster and vector input.
 
-    Parameters:
+    Args:
         base_raster_path_list (sequence): a sequence of base raster paths that
             will be transformed and will be used to determine the target
             bounding box.
@@ -778,7 +778,7 @@ def new_raster_from_base(
     number of bands, nodata values, data type, and core raster creation
     options.
 
-    Parameters:
+    Args:
         base_path (string): path to existing raster.
         target_path (string): path to desired target raster.
         datatype: the pixel datatype of the output raster, for example
@@ -907,7 +907,7 @@ def create_raster_from_vector_extents(
         raster_driver_creation_tuple=DEFAULT_GTIFF_CREATION_TUPLE_OPTIONS):
     """Create a blank raster based on a vector file extent.
 
-    Parameters:
+    Args:
         base_vector_path (string): path to vector shapefile to base the
             bounding box for the target raster.
         target_raster_path (string): path to location of generated geotiff;
@@ -1016,7 +1016,7 @@ def interpolate_points(
         interpolation_mode):
     """Interpolate point values onto an existing raster.
 
-    Parameters:
+    Args:
         base_vector_path (string): path to a shapefile that contains point
             vector layers.
         vector_attribute_field (field): a string in the vector referenced at
@@ -1094,7 +1094,7 @@ def zonal_statistics(
     you encounter one of these please email the description and dataset
     to richsharp@stanford.edu.
 
-    Parameters:
+    Args:
         base_raster_path_band (tuple): a str/int tuple indicating the path to
             the base raster and the band index of that raster to analyze.
         aggregate_vector_path (string): a path to an ogr compatable polygon
@@ -1437,7 +1437,7 @@ def zonal_statistics(
 def get_vector_info(vector_path, layer_id=0):
     """Get information about an GDAL vector.
 
-    Parameters:
+    Args:
         vector_path (str): a path to a GDAL vector.
         layer_id (str/int): name or index of underlying layer to analyze.
             Defaults to 0.
@@ -1482,7 +1482,7 @@ def get_vector_info(vector_path, layer_id=0):
 def get_raster_info(raster_path):
     """Get information about a GDAL raster (dataset).
 
-    Parameters:
+    Args:
        raster_path (String): a path to a GDAL raster.
 
     Raises:
@@ -1579,7 +1579,7 @@ def reproject_vector(
     Transforms the features of the base vector to the desired output
     projection in a new ESRI Shapefile.
 
-    Parameters:
+    Args:
         base_vector_path (string): Path to the base shapefile to transform.
         target_wkt (string): the desired output projection in Well Known Text
             (by layer.GetSpatialRef().ExportToWkt())
@@ -1718,7 +1718,7 @@ def reclassify_raster(
     A function to reclassify values in raster to any output type. By default
     the values except for nodata must be in ``value_map``.
 
-    Parameters:
+    Args:
         base_raster_path_band (tuple): a tuple including file path to a raster
             and the band index to operate over. ex: (path, band_index)
         value_map (dictionary): a dictionary of values of
@@ -1791,7 +1791,7 @@ def warp_raster(
         osr_axis_mapping_strategy=DEFAULT_OSR_AXIS_MAPPING_STRATEGY):
     """Resize/resample raster to desired pixel size, bbox and projection.
 
-    Parameters:
+    Args:
         base_raster_path (string): path to base raster.
         target_pixel_size (list/tuple): a two element sequence indicating
             the x and y pixel size in projected units.
@@ -1944,6 +1944,12 @@ def warp_raster(
         # if there is no vector path the result is the warp
         warped_raster_path = target_raster_path
     base_raster = gdal.OpenEx(base_raster_path, gdal.OF_RASTER)
+
+    raster_creation_options = list(raster_driver_creation_tuple[1])
+    if (base_raster_info['numpy_type'] == numpy.int8 and
+            'PIXELTYPE' not in ' '.join(raster_creation_options)):
+        raster_creation_options.append('PIXELTYPE=SIGNEDBYTE')
+
     gdal.Warp(
         warped_raster_path, base_raster,
         format=raster_driver_creation_tuple[0],
@@ -1956,7 +1962,7 @@ def warp_raster(
         dstSRS=target_sr_wkt,
         multithread=True if warp_options else False,
         warpOptions=warp_options,
-        creationOptions=raster_driver_creation_tuple[1],
+        creationOptions=raster_creation_options,
         callback=reproject_callback,
         callback_data=[target_raster_path])
 
@@ -1982,7 +1988,7 @@ def rasterize(
     Burn the layer at ``layer_id`` in ``vector_path`` to an existing
     raster at ``target_raster_path_band``.
 
-    Parameters:
+    Args:
         vector_path (string): filepath to vector to rasterize.
         target_raster_path (string): path to an existing raster to burn vector
             into.  Can have multiple bands.
@@ -2080,7 +2086,7 @@ def calculate_disjoint_polygon_set(
     Determining the minimal number of those sets is an np-complete problem so
     this is an approximation that builds up sets of maximal subsets.
 
-    Parameters:
+    Args:
         vector_path (string): a path to an OGR vector.
         layer_id (str/int): name or index of underlying layer in
             ``vector_path`` to calculate disjoint set. Defaults to 0.
@@ -2215,7 +2221,7 @@ def distance_transform_edt(
     nodata placement and thus produces a raster that will have distance
     transform values even in pixels that are nodata in the base.
 
-    Parameters:
+    Args:
         base_region_raster_path_band (tuple): a tuple including file path to a
             raster and the band index to define the base region pixels. Any
             pixel  that is not 0 and nodata are considered to be part of the
@@ -2288,8 +2294,7 @@ def distance_transform_edt(
 
 
 def _next_regular(base):
-    """
-    Find the next regular number greater than or equal to base.
+    """Find the next regular number greater than or equal to base.
 
     Regular numbers are composites of the prime factors 2, 3, and 5.
     Also known as 5-smooth numbers or Hamming numbers, these are the optimal
@@ -2301,7 +2306,7 @@ def _next_regular(base):
 
     https://github.com/scipy/scipy/blob/v0.17.1/scipy/signal/signaltools.py#L211
 
-    Parameters:
+    Args:
         base (int): a positive integer to start to find the next Hamming
             number.
 
@@ -2358,7 +2363,7 @@ def convolve_2d(
     Nodata values are treated as 0.0 during the convolution and masked to
     nodata for the output result where ``signal_path`` has nodata.
 
-    Parameters:
+    Args:
         signal_path_band (tuple): a 2 tuple of the form
             (filepath to signal raster, band index).
         kernel_path_band (tuple): a 2 tuple of the form
@@ -2618,7 +2623,7 @@ def iterblocks(
     to iterate 'simultaneously' over multiple rasters, though the user should
     be careful to do so only with prealigned rasters.
 
-    Parameters:
+    Args:
         raster_path_band (tuple): a path/band index tuple to indicate
             which raster band iterblocks should iterate over.
         largest_block (int): Attempts to iterate over raster blocks with
@@ -2720,7 +2725,7 @@ def transform_bounding_box(
     attempts to make the largest bounding box around any transformed point
     on the edge whether corners or warped edges.
 
-    Parameters:
+    Args:
         bounding_box (sequence): a sequence of 4 coordinates in ``base_epsg``
             coordinate system describing the bound in the order
             [xmin, ymin, xmax, ymax].
@@ -2810,7 +2815,7 @@ def merge_rasters(
     same number of bands, and same datatype. If any of these are not true,
     the operation raises a ValueError with an appropriate error message.
 
-    Parameters:
+    Args:
         raster_path_list (sequence): list of file paths to rasters
         target_path (string): path to the geotiff file that will be created
             by this operation.
@@ -3011,10 +3016,9 @@ def mask_raster(
         mask_layer_id=0, target_mask_value=None, working_dir=None,
         all_touched=False, where_clause=None,
         raster_driver_creation_tuple=DEFAULT_GTIFF_CREATION_TUPLE_OPTIONS):
-    """
-    Mask a raster band with a given vector.
+    """Mask a raster band with a given vector.
 
-    Parameters:
+    Args:
         base_raster_path_band (tuple): a (path, band number) tuple indicating
             the data to mask.
         mask_vector_path (path): path to a vector that will be used to mask
@@ -3099,7 +3103,7 @@ def _invoke_timed_callback(
     This is a convenience function to standardize update callbacks from the
     module.
 
-    Parameters:
+    Args:
         reference_time (float): time to base ``callback_period`` length from.
         callback_lambda (lambda): function to invoke if difference between
             current time and ``reference_time`` has exceeded
@@ -3125,7 +3129,7 @@ def _gdal_to_numpy_type(band):
     This function doesn't handle complex or unknown types.  If they are
     passed in, this function will raise a ValueError.
 
-    Parameters:
+    Args:
         band (gdal.Band): GDAL Band
 
     Returns:
@@ -3244,7 +3248,7 @@ def get_gis_type(path):
 def _make_logger_callback(message):
     """Build a timed logger callback that prints ``message`` replaced.
 
-    Parameters:
+    Args:
         message (string): a string that expects 2 placement %% variables,
             first for % complete from ``df_complete``, second from
             ``p_progress_arg[0]``.
@@ -3304,7 +3308,7 @@ def _make_fft_cache():
     def _fft_cache(fshape, xoff, yoff, data_block):
         """Remember the last computed fft.
 
-        Parameters:
+        Args:
             fshape (numpy.ndarray): shape of fft
             xoff,yoff (int): offsets of the data block
             data_block (numpy.ndarray): the 2D array to calculate the FFT
@@ -3331,8 +3335,8 @@ def _convolve_2d_worker(
         work_queue, write_queue):
     """Worker function to be used by ``convolve_2d``.
 
-    Parameters:
-        Parameters:
+    Args:
+        Args:
         signal_path_band (tuple): a 2 tuple of the form
             (filepath to signal raster, band index).
         kernel_path_band (tuple): a 2 tuple of the form
