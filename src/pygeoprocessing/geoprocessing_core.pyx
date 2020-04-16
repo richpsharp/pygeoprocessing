@@ -374,7 +374,7 @@ cdef class _ManagedRaster:
             raster_band = None
             raster = None
 
-    cdef void flush(self) except *:
+    cdef void flush(self, int hard) except *:
         cdef clist[BlockBufferPair] removed_value_list
         cdef double *double_buffer
         cdef cset[int].iterator dirty_itr
@@ -430,6 +430,9 @@ cdef class _ManagedRaster:
             removed_value_list.pop_front()
 
         if self.write_mode:
+            if hard:
+                raster_band.FlushCache()
+                raster.FlushCache()
             raster_band = None
             raster = None
 
@@ -1684,7 +1687,6 @@ def raster_optimization(
                         prop_met_so_far[i] += active_val
                         if (prop_met_so_far[i] < min_prop_left):
                             min_prop_left = prop_met_so_far[i]
-                LOGGER.debug('%d %f', count, min_prop_left)
                 if (min_prop_left >
                         goal_met_cutoffs_array[next_threshold_index]):
                     # copy the mask to an intermediate value and save each
@@ -1692,7 +1694,7 @@ def raster_optimization(
                     LOGGER.debug(
                         'met cutoff at %f',
                         goal_met_cutoffs_array[next_threshold_index])
-                    mask_managed_raster.flush()
+                    mask_managed_raster.flush(0)
                     pre, post = os.path.splitext(mask_raster_path)
                     target_step_raster_path = ('%s_%f%s' % (
                         pre, goal_met_cutoffs_array[next_threshold_index],
