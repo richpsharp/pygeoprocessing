@@ -1478,7 +1478,7 @@ def raster_optimization(
                 (pygeoprocessing.get_raster_info(path)['nodata'][band_id-1],
                  'raw'),
                 (prop_nodata, 'raw')], normalize_op, normalized_path,
-                gdal.GDT_Float64, prop_nodata)
+                gdal.GDT_Float64, prop_nodata, calc_raster_stats=False)
             normalized_raster_band_path_list.append((normalized_path, 1))
             normalized_nodata_list.append((prop_nodata, 'raw'))
         else:
@@ -1492,7 +1492,7 @@ def raster_optimization(
         [*normalized_raster_band_path_list, *normalized_nodata_list,
          (prop_nodata, 'raw')],
         sum_rasters_op, normalized_sum_raster_path, gdal.GDT_Float64,
-        prop_nodata)
+        prop_nodata, calc_raster_stats=False)
 
     cdef long long valid_pixel_count = count_valid(
         (normalized_sum_raster_path, 1))
