@@ -1504,7 +1504,7 @@ def raster_optimization(
         for i in range(n_rasters)])
 
     # need a fast sum here
-    cdef double[:] raster_sum_array = raster_sum_list.copy()
+    cdef double[:] raster_sum_array = numpy.array(raster_sum_list)
 
     # sort base rasters and the normalized sum
     heapfile_directory_list = []
