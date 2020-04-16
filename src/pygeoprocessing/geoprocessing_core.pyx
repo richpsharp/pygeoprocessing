@@ -303,6 +303,9 @@ cdef class _ManagedRaster:
         cdef int win_xsize = self.block_xsize
         cdef int win_ysize = self.block_ysize
 
+        # variable to guard against multiple tries
+        cdef int tries_left = 5
+
         # load a new block
         if xoff+win_xsize > self.raster_x_size:
             win_xsize = win_xsize - (xoff+win_xsize - self.raster_x_size)
@@ -326,7 +329,6 @@ cdef class _ManagedRaster:
             <int>block_index, <double*>double_buffer, removed_value_list)
 
         if self.write_mode:
-            int try_count = 0
             while True:
                 # sometimes this raster doesn't open, this will give it a few
                 # tries.
@@ -336,12 +338,12 @@ cdef class _ManagedRaster:
                     raster_band = raster.GetRasterBand(self.band_id)
                     break
                 except Exception:
-                    try_count += 1
+                    tries_left -= 1
                     print(
                         "couldn't open %s, exists: %s, try: %d " % (
                             self.raster_path,
-                            os.path.exists(self.raster_path), try_count))
-                    if try_count < 5:
+                            os.path.exists(self.raster_path), tries_left))
+                    if tries_left > 0:
                         time.sleep(0.5)
                     else:
                         raise
