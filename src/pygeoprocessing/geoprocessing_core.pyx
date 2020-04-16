@@ -1616,32 +1616,32 @@ def raster_optimization(
     cdef double[:] goal_met_cutoffs_array = numpy.array(goal_met_cutoffs)
     cdef int next_threshold_index=0   # keep track of which threshold
     cdef double min_prop_left
-    cdef int i, max_prop_index, x, y
+    cdef int i, min_prop_index, x, y
     cdef int64t active_index
-    cdef double active_prop_to_meet
+    cdef double min_prop_met
 
     # iterate props to meet individual targets
     cdef long long count = 0
     cdef long long pixels_set = 0
     step_prop_list = []
     while True:
-        max_prop_index = -1
-        active_prop_to_meet = 0.0
+        min_prop_index = -1
+        min_prop_met = 1.0  # it'll never be bigger than 1.0
         if count % 1000000 == 0:
             LOGGER.debug(
                 '%.2f%% complete',
                 100.0 * float(count)/float(valid_pixel_count))
         for i in range(n_rasters):
             if (prop_to_meet_vals[i] > 0 and
-                    (prop_to_meet_vals[i] > active_prop_to_meet)):
-                max_prop_index = i
-                active_prop_to_meet = prop_to_meet_vals[i]
-        if max_prop_index == -1:
+                    (min_prop_met > prop_to_meet_vals[i])):
+                min_prop_index = i
+                min_prop_met = prop_to_meet_vals[i]
+        if min_prop_index == -1:
             LOGGER.warning('all targets met')
             break
 
         fast_file_iterator_vector_ptr = \
-            fast_file_iterator_vector_ptr_vector[max_prop_index]
+            fast_file_iterator_vector_ptr_vector[min_prop_index]
         while True:
             count += 1
             active_index = (
