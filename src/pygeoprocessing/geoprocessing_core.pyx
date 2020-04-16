@@ -1494,7 +1494,8 @@ def raster_optimization(
         sum_rasters_op, normalized_sum_raster_path, gdal.GDT_Float64,
         prop_nodata)
 
-    cdef long long valid_pixel_count = count_valid(normalized_sum_raster_path)
+    cdef long long valid_pixel_count = count_valid(
+        (normalized_sum_raster_path, 1))
 
     # sort base rasters and the normalized sum
     heapfile_directory_list = []
