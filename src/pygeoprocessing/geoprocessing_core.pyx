@@ -1358,10 +1358,10 @@ ctypedef FastFileIteratorIndex[double]* FastFileIteratorIndexDoublePtr
 ctypedef vector[FastFileIteratorIndexDoublePtr]* FastFileIteratorIndexVectorPtr
 
 
-def normalize_op(base_array, total_sum, base_nodata):
+def normalize_op(base_array, total_sum, base_nodata, target_nodata):
     """Divide base by total and set nodata to 0."""
     result = numpy.empty(base_array.shape, dtype=numpy.float64)
-    result[:] = 0.0
+    result[:] = target_nodata
     valid_mask = ~numpy.isclose(base_array, base_nodata)
     result[valid_mask] = (
         base_array[valid_mask].astype(numpy.float64) / total_sum)
@@ -1487,7 +1487,7 @@ def raster_optimization(
     raster_nodata_list = []
     normalized_raster_band_path_list = []
     normalized_nodata_list = []
-    prop_nodata = -1
+    norm_nodata = -1
 
     # calculate normalized rasters of their total
     cdef int index
@@ -1507,14 +1507,14 @@ def raster_optimization(
                 args=([
                     (path, 1), (sum_val, 'raw'),
                     (pygeoprocessing.get_raster_info(path)['nodata'][band_id-1],
-                     'raw')], normalize_op, normalized_path,
-                    gdal.GDT_Float64, prop_nodata),
+                     'raw'), (norm_nodata, 'raw')], normalize_op, normalized_path,
+                    gdal.GDT_Float64, norm_nodata),
                 kwargs={'calc_raster_stats': False},
                 target_path_list=[normalized_path],
                 task_name=f'normalize {path}')
             normalize_task_list.append(normalize_task)
             normalized_raster_band_path_list.append((normalized_path, 1))
-            normalized_nodata_list.append((prop_nodata, 'raw'))
+            normalized_nodata_list.append((norm_nodata, 'raw'))
             valid_raster_index_list.append(index)
         else:
             normalized_raster_band_path_list.append((path, band_id))
@@ -1532,9 +1532,9 @@ def raster_optimization(
         func=pygeoprocessing.raster_calculator,
         args=(
             [*normalized_raster_band_path_list, *normalized_nodata_list,
-             (prop_nodata, 'raw')],
+             (norm_nodata, 'raw')],
             sum_rasters_op, normalized_sum_raster_path, gdal.GDT_Float64,
-            prop_nodata),
+            norm_nodata),
         kwargs={'calc_raster_stats': False},
         dependent_task_list=normalize_task_list,
         target_path_list=[normalized_sum_raster_path],
