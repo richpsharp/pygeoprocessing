@@ -1471,15 +1471,15 @@ def raster_optimization(
             raster_nodata_list.append(
                 (pygeoprocessing.get_raster_info(path)[
                     'nodata'][band_id-1], 'raw'))
-            proportional_path = os.path.join(
-                churn_dir, f'prop_{os.path.basename(path)}')
+            normalized_path = os.path.join(
+                churn_dir, f'norm_{os.path.basename(path)}')
             pygeoprocessing.raster_calculator([
                 (path, 1), (sum_val, 'raw'),
                 (pygeoprocessing.get_raster_info(path)['nodata'][band_id-1],
                  'raw'),
-                (prop_nodata, 'raw')], normalize_op, proportional_path,
+                (prop_nodata, 'raw')], normalize_op, normalized_path,
                 gdal.GDT_Float64, prop_nodata)
-            normalized_raster_band_path_list.append((proportional_path, 1))
+            normalized_raster_band_path_list.append((normalized_path, 1))
             normalized_nodata_list.append((prop_nodata, 'raw'))
         else:
             normalized_raster_band_path_list.append((path, band_id))
@@ -1497,9 +1497,16 @@ def raster_optimization(
     cdef long long valid_pixel_count = count_valid(
         (normalized_sum_raster_path, 1))
 
+    managed_raster_array = numpy.array([
+        _ManagedRaster(
+            normalized_raster_band_path_list[i][0],
+            normalized_raster_band_path_list[i][1], 0)
+        for i in range(n_rasters)])
+
     # sort base rasters and the normalized sum
     heapfile_directory_list = []
-    for raster_index, raster_path_band in enumerate(raster_path_band_list):
+    for raster_index, raster_path_band in enumerate(
+            normalized_raster_band_path_list):
         last_update = time.time()
         pixels_processed = 0
         raster_id = os.path.splitext(os.path.basename(raster_path_band[0]))[0]
@@ -1618,13 +1625,6 @@ def raster_optimization(
     cdef int i, max_prop_index, x, y
     cdef int64t active_index
     cdef double active_prop_to_meet
-
-    cdef _ManagedRaster[:] managed_raster_array
-
-    managed_raster_array = numpy.array([
-        _ManagedRaster(
-            raster_path_band_list[i][0],
-            raster_path_band_list[i][1], 0) for i in range(n_rasters)])
 
     # iterate props to meet individual targets
     cdef long long count = 0
