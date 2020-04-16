@@ -1668,8 +1668,8 @@ def raster_optimization(
         mask_raster_path, 1, 1)
 
     cdef double[:] goal_met_cutoffs_array = numpy.array(goal_met_cutoffs)
-    cdef int next_threshold_index=0   # keep track of which threshold
-    cdef double min_prop_left
+    cdef int next_threshold_index = 0   # keep track of which threshold
+    cdef double min_prop_left = 0.0
     cdef int i, min_prop_index, x, y
     cdef int64t active_index
     cdef double min_prop_met
@@ -1698,7 +1698,19 @@ def raster_optimization(
 
         fast_file_iterator_vector_ptr = \
             fast_file_iterator_vector_ptr_vector[min_prop_index]
+        if deref(fast_file_iterator_vector_ptr).size() == 0:
+            LOGGER.debug('all done with raster min_prop_index')
+            valid_raster_count -= 1
+            if valid_raster_count == 0:
+                LOGGER.debug('all done with all rasters')
+                break
+            raster_index_list = list(raster_indexes_to_process)
+            del raster_index_list[min_prop_index]
+            raster_indexes_to_process = numpy.array(
+                raster_index_list, dtype=numpy.int)
+            continue
         while True:
+
             active_index = (
                 deref(fast_file_iterator_vector_ptr).front().next())
             # update the heap
@@ -1764,19 +1776,24 @@ def raster_optimization(
                 next_threshold_index += 1
             break
 
-    with open(os.path.join(
-            output_directory, f'results{target_suffix}.csv'), 'w') as \
-            results_file:
+    LOGGER.debug('creating results')
+    csv_path = os.path.join(output_directory, f'results{target_suffix}.csv')
+    with open(csv_path, 'w') as results_file:
         results_file.write(
-            ',base rasters\n'
-            'min proportion met,proportion_selected,' +
-            ','.join([path_band[0]
+            ',,base rasters\n'
+            'min total met,proportion of area selected,' +
+            ','.join([os.path.basename(path_band[0])
                       for path_band in raster_path_band_list]) + '\n')
         for index, min_prop in enumerate(goal_met_cutoffs):
+            if index >= len(step_prop_list):
+                LOGGER.warn('did not record %s threshold', str(min_prop))
+                break
+            LOGGER.debug('%d %s', index, str(min_prop))
             raster_fill_prop, step_prop_array = step_prop_list[index]
-            results_file.write('%f,%f' % (min_prop, raster_fill_prop))
+            LOGGER.debug('%s %s', str(raster_fill_prop), str(step_prop_array))
+            results_file.write('%f,%f,' % (min_prop, raster_fill_prop))
             results_file.write(','.join([
-                '%f' % 1-step_val for step_val in step_prop_array]) + '\n')
+                '%f' % step_val for step_val in step_prop_array]) + '\n')
 
     # free all the iterator memory
     while fast_file_iterator_vector_ptr_vector.size() > 0:
