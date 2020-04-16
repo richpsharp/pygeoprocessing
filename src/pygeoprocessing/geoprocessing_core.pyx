@@ -1440,7 +1440,7 @@ def raster_optimization(
         pass
 
     heapfile_list = []
-    cdef double[:] prop_to_meet_vals = numpy.zeros(n_rasters)
+    cdef double[:] prop_met_so_far = numpy.zeros(n_rasters)
 
     dim_set = set()
     for raster_path_band in raster_path_band_list:
@@ -1463,6 +1463,7 @@ def raster_optimization(
     prop_nodata = -1
 
     # calculate normalized rasters of their total
+    cdef int index
     for index, ((path, band_id), sum_val) in enumerate(zip(
             raster_path_band_list, raster_sum_list)):
         if sum_val > 0:
@@ -1484,7 +1485,7 @@ def raster_optimization(
             normalized_raster_band_path_list.append((path, band_id))
             normalized_nodata_list.append(
                 (pygeoprocessing.get_raster_info(path)['nodata'][0], 'raw'))
-            prop_to_meet_vals[index] = -1 #  -1 shouldn't be considered
+            prop_met_so_far[index] = -1 #  -1 shouldn't be considered
 
     # calcualte the sum of all the normalized rasters for a preconditioner
     normalized_sum_raster_path = os.path.join(churn_dir, 'norm_sum.tif')
@@ -1613,7 +1614,6 @@ def raster_optimization(
     cdef _ManagedRaster mask_managed_raster = _ManagedRaster(
         mask_raster_path, 1, 1)
 
-    cdef double[:] running_goal_sum_array = numpy.zeros(n_rasters)
     cdef double[:] goal_met_cutoffs_array = numpy.array(goal_met_cutoffs)
     cdef int next_threshold_index=0   # keep track of which threshold
     cdef double min_prop_left
@@ -1633,10 +1633,10 @@ def raster_optimization(
                 '%.2f%% complete',
                 100.0 * float(count)/float(valid_pixel_count))
         for i in range(n_rasters):
-            if (prop_to_meet_vals[i] >= 0 and
-                    (min_prop_met > prop_to_meet_vals[i])):
+            if (prop_met_so_far[i] >= 0 and
+                    (min_prop_met > prop_met_so_far[i])):
                 min_prop_index = i
-                min_prop_met = prop_to_meet_vals[i]
+                min_prop_met = prop_met_so_far[i]
         if min_prop_index == -1:
             LOGGER.warning('all targets met')
             break
@@ -1681,18 +1681,17 @@ def raster_optimization(
                         x, y)
                     # we could get a garbage area so check first
                     if active_val > 0:
-                        running_goal_sum_array[i] += active_val
-                        if (running_goal_sum_array[i] > 0 and
-                                running_goal_sum_array[i] < min_prop_left):
-                            min_prop_left = running_goal_sum_array[i]
-                LOGGER.debug(min_prop_left)
+                        prop_met_so_far[i] += active_val
+                        if (prop_met_so_far[i] < min_prop_left):
+                            min_prop_left = prop_met_so_far[i]
+                LOGGER.debug('%d %f', count, min_prop_left)
                 if (min_prop_left >
                         goal_met_cutoffs_array[next_threshold_index]):
                     # copy the mask to an intermediate value and save each
                     # threshold value met so far
                     LOGGER.debug(
                         'met cutoff at %f',
-                        1-goal_met_cutoffs_array[next_threshold_index])
+                        goal_met_cutoffs_array[next_threshold_index])
                     mask_managed_raster.flush()
                     pre, post = os.path.splitext(mask_raster_path)
                     target_step_raster_path = ('%s_%f%s' % (
@@ -1700,9 +1699,9 @@ def raster_optimization(
                         post))
                     shutil.copyfile(
                         mask_raster_path, target_step_raster_path)
-                    step_prop_list.push(
+                    step_prop_list.append(
                         (<double>(count)/<double>(valid_pixel_count),
-                         running_goal_sum_array.copy()))
+                         numpy.array(prop_met_so_far)))
                     next_threshold_index += 1
             else:
                 continue
