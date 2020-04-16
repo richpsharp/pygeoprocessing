@@ -1702,8 +1702,8 @@ def raster_optimization(
                     mask_managed_raster.flush()
                     pre, post = os.path.splitext(mask_raster_path)
                     target_step_raster_path = ('%s_%f%s' % (
-                        pre, goal_met_cutoffs_array[next_threshold_index]),
-                        post)
+                        pre, goal_met_cutoffs_array[next_threshold_index],
+                        post))
                     shutil.copyfile(
                         mask_raster_path, target_step_raster_path)
                     step_prop_list.push_back(
