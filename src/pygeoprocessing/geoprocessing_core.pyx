@@ -1503,9 +1503,6 @@ def raster_optimization(
             normalized_raster_band_path_list[i][1], 0)
         for i in range(n_rasters)])
 
-    # need a fast sum here
-    cdef double[:] raster_sum_array = numpy.array(raster_sum_list)
-
     # sort base rasters and the normalized sum
     heapfile_directory_list = []
     for raster_index, raster_path_band in enumerate(
@@ -1601,7 +1598,7 @@ def raster_optimization(
                 FastFileIteratorIndexCompare[double])
 
         # define the max prop list for that raster based on the desired target
-        if raster_sum_array[raster_index] > 0:
+        if raster_sum_list[raster_index] > 0:
             prop_to_meet_vals[raster_index] = 1.0
         else:
             prop_to_meet_vals[raster_index] = 0.0
@@ -1690,12 +1687,11 @@ def raster_optimization(
                     # we could get a garbage area so check first
                     if active_val > 0:
                         running_goal_sum_array[i] += active_val
-                        prop_to_meet_vals[i] = (
-                            1.0 - running_goal_sum_array[i]) / (
-                            raster_sum_array[i])
+                        prop_to_meet_vals[i] = 1.0 - running_goal_sum_array[i]
                         if (prop_to_meet_vals[i] > 0 and
                                 prop_to_meet_vals[i] < min_working_prop):
                             min_working_prop = prop_to_meet_vals[i]
+                LOGGER.debug(min_working_prop)
                 if (min_working_prop >
                         goal_met_cutoffs_array[next_threshold_index]):
                     # copy the mask to an intermediate value and save each
@@ -1704,8 +1700,10 @@ def raster_optimization(
                         'met cutoff at %f',
                         goal_met_cutoffs_array[next_threshold_index])
                     mask_managed_raster.flush()
-                    target_step_raster_path = (
-                        '%s_%f%s' % os.path.splitext(mask_raster_path))
+                    pre, post = os.path.splitext(mask_raster_path)
+                    target_step_raster_path = ('%s_%f%s' % (
+                        pre, goal_met_cutoffs_array[next_threshold_index]),
+                        post)
                     shutil.copyfile(
                         mask_raster_path, target_step_raster_path)
                     step_prop_list.push_back(
