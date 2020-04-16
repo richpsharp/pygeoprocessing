@@ -1479,6 +1479,7 @@ def raster_optimization(
 
     # calculate normalized rasters of their total
     cdef int index
+    normalize_task_list = []
     for index, ((path, band_id), sum_val) in enumerate(zip(
             raster_path_band_list, raster_sum_list)):
         if sum_val > 0:
@@ -1488,30 +1489,50 @@ def raster_optimization(
                     'nodata'][band_id-1], 'raw'))
             normalized_path = os.path.join(
                 churn_directory, f'norm_{os.path.basename(path)}')
-            pygeoprocessing.raster_calculator([
-                (path, 1), (sum_val, 'raw'),
-                (pygeoprocessing.get_raster_info(path)['nodata'][band_id-1],
-                 'raw'),
-                (prop_nodata, 'raw')], normalize_op, normalized_path,
-                gdal.GDT_Float64, prop_nodata, calc_raster_stats=False)
+            normalize_task = task_graph.add_task(
+                func=pygeoprocessing.raster_calculator,
+                args=([
+                    (path, 1), (sum_val, 'raw'),
+                    (pygeoprocessing.get_raster_info(path)['nodata'][band_id-1],
+                     'raw'),
+                    (prop_nodata, 'raw')], normalize_op, normalized_path,
+                    gdal.GDT_Float64, prop_nodata),
+                kwargs={'calc_raster_stats': False},
+                target_path_list=[normalized_path],
+                task_name=f'normalize {path}')
+            normalize_task_list.append(normalize_task)
             normalized_raster_band_path_list.append((normalized_path, 1))
             normalized_nodata_list.append((prop_nodata, 'raw'))
         else:
             normalized_raster_band_path_list.append((path, band_id))
             normalized_nodata_list.append(
                 (pygeoprocessing.get_raster_info(path)['nodata'][0], 'raw'))
-            prop_met_so_far[index] = -1  #  -1 shouldn't be considered
+            prop_met_so_far[index] = -1  # -1 means don't consider
 
     # calcualte the sum of all the normalized rasters for a preconditioner
     normalized_sum_raster_path = os.path.join(churn_directory, 'norm_sum.tif')
-    pygeoprocessing.raster_calculator(
-        [*normalized_raster_band_path_list, *normalized_nodata_list,
-         (prop_nodata, 'raw')],
-        sum_rasters_op, normalized_sum_raster_path, gdal.GDT_Float64,
-        prop_nodata, calc_raster_stats=False)
+    normalized_sum_task = task_graph.add_task(
+        func=pygeoprocessing.raster_calculator,
+        args=(
+            [*normalized_raster_band_path_list, *normalized_nodata_list,
+             (prop_nodata, 'raw')],
+            sum_rasters_op, normalized_sum_raster_path, gdal.GDT_Float64,
+            prop_nodata),
+        kwargs={'calc_raster_stats': False},
+        dependent_task_list=[normalize_task_list],
+        target_path_list=[normalized_sum_raster_path],
+        task_name='sum normalized rasters')
 
-    cdef long long valid_pixel_count = count_valid(
-        (normalized_sum_raster_path, 1))
+    count_task = task_graph.add_task(
+        func=count_valid,
+        args=(normalized_sum_raster_path, 1),
+        dependent_task_list=[normalized_sum_task],
+        task_name='count valid pixels')
+    cdef long long valid_pixel_count = count_task.get()
+
+    task_graph.close()
+    task_graph.join()
+    del task_graph
 
     managed_raster_array = numpy.array([
         _ManagedRaster(
