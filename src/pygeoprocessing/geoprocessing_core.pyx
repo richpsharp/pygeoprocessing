@@ -1358,10 +1358,10 @@ ctypedef FastFileIteratorIndex[double]* FastFileIteratorIndexDoublePtr
 ctypedef vector[FastFileIteratorIndexDoublePtr]* FastFileIteratorIndexVectorPtr
 
 
-def normalize_op(base_array, total_sum, base_nodata, target_nodata):
-    """Divide base by total and guard against nodata."""
+def normalize_op(base_array, total_sum, base_nodata):
+    """Divide base by total and set nodata to 0."""
     result = numpy.empty(base_array.shape, dtype=numpy.float64)
-    result[:] = target_nodata
+    result[:] = 0.0
     valid_mask = ~numpy.isclose(base_array, base_nodata)
     result[valid_mask] = (
         base_array[valid_mask].astype(numpy.float64) / total_sum)
@@ -1419,10 +1419,10 @@ def count_valid(raster_path_band):
     return valid_count
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.nonecheck(False)
-@cython.cdivision(True)
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
+# @cython.nonecheck(False)
+# @cython.cdivision(True)
 def raster_optimization(
         raster_path_band_list, churn_directory, output_directory,
         target_suffix=None, goal_met_cutoffs=[x/100 for x in range(5, 101, 5)],
@@ -1469,7 +1469,6 @@ def raster_optimization(
 
     heapfile_list = []
     cdef double[:] prop_met_so_far = numpy.zeros(n_rasters)
-
     dim_set = set()
     for raster_path_band in raster_path_band_list:
         n_cols, n_rows = pygeoprocessing.get_raster_info(
@@ -1493,6 +1492,7 @@ def raster_optimization(
     # calculate normalized rasters of their total
     cdef int index
     normalize_task_list = []
+    valid_raster_index_list = []
     for index, ((path, band_id), sum_val) in enumerate(zip(
             raster_path_band_list, raster_sum_list)):
         if sum_val > 0:
@@ -1507,8 +1507,7 @@ def raster_optimization(
                 args=([
                     (path, 1), (sum_val, 'raw'),
                     (pygeoprocessing.get_raster_info(path)['nodata'][band_id-1],
-                     'raw'),
-                    (prop_nodata, 'raw')], normalize_op, normalized_path,
+                     'raw')], normalize_op, normalized_path,
                     gdal.GDT_Float64, prop_nodata),
                 kwargs={'calc_raster_stats': False},
                 target_path_list=[normalized_path],
@@ -1516,11 +1515,16 @@ def raster_optimization(
             normalize_task_list.append(normalize_task)
             normalized_raster_band_path_list.append((normalized_path, 1))
             normalized_nodata_list.append((prop_nodata, 'raw'))
+            valid_raster_index_list.append(index)
         else:
             normalized_raster_band_path_list.append((path, band_id))
             normalized_nodata_list.append(
                 (pygeoprocessing.get_raster_info(path)['nodata'][0], 'raw'))
             prop_met_so_far[index] = -1  # -1 means don't consider
+
+    cdef int[:] raster_indexes_to_process = numpy.array(
+        valid_raster_index_list, dtype=numpy.int)
+    cdef int valid_raster_count = len(valid_raster_index_list)
 
     # calcualte the sum of all the normalized rasters for a preconditioner
     normalized_sum_raster_path = os.path.join(churn_directory, 'norm_sum.tif')
@@ -1532,13 +1536,13 @@ def raster_optimization(
             sum_rasters_op, normalized_sum_raster_path, gdal.GDT_Float64,
             prop_nodata),
         kwargs={'calc_raster_stats': False},
-        dependent_task_list=[normalize_task_list],
+        dependent_task_list=normalize_task_list,
         target_path_list=[normalized_sum_raster_path],
         task_name='sum normalized rasters')
 
     count_task = task_graph.add_task(
         func=count_valid,
-        args=(normalized_sum_raster_path, 1),
+        args=((normalized_sum_raster_path, 1),),
         dependent_task_list=[normalized_sum_task],
         task_name='count valid pixels')
     cdef long long valid_pixel_count = count_task.get()
@@ -1674,6 +1678,8 @@ def raster_optimization(
     cdef long long count = 0
     cdef long long pixels_set = 0
     step_prop_list = []
+    cdef int j
+
     while True:
         min_prop_index = -1
         min_prop_met = 1.0  # it'll never be bigger than 1.0
@@ -1681,11 +1687,11 @@ def raster_optimization(
             LOGGER.debug(
                 '%.2f%% complete',
                 100.0 * float(count)/float(valid_pixel_count))
-        for i in range(n_rasters):
-            if (prop_met_so_far[i] >= 0 and
-                    (min_prop_met > prop_met_so_far[i])):
-                min_prop_index = i
-                min_prop_met = prop_met_so_far[i]
+        for i in range(valid_raster_count):
+            j = raster_indexes_to_process[i]
+            if min_prop_met > prop_met_so_far[j]:
+                min_prop_index = j
+                min_prop_met = prop_met_so_far[j]
         if min_prop_index == -1:
             LOGGER.warning('all targets met')
             break
@@ -1693,7 +1699,6 @@ def raster_optimization(
         fast_file_iterator_vector_ptr = \
             fast_file_iterator_vector_ptr_vector[min_prop_index]
         while True:
-            count += 1
             active_index = (
                 deref(fast_file_iterator_vector_ptr).front().next())
             # update the heap
@@ -1720,41 +1725,43 @@ def raster_optimization(
             x = active_index % n_cols
             y = active_index // n_cols
             # check that the pixel hasn't already been selected
-            if mask_managed_raster.get(x, y) == mask_nodata:
-                mask_managed_raster.set(x, y, 1)
-                pixels_set += 1
-                # update all the pools
-                min_prop_left = 1.0
-                for i in range(n_rasters):
-                    active_val = (<_ManagedRaster>managed_raster_array[i]).get(
-                        x, y)
-                    # we could get a garbage area so check first
-                    if active_val > 0:
-                        prop_met_so_far[i] += active_val
-                        if (prop_met_so_far[i] < min_prop_left):
-                            min_prop_left = prop_met_so_far[i]
-                if (min_prop_left >
-                        goal_met_cutoffs_array[next_threshold_index]):
-                    # copy the mask to an intermediate value and save each
-                    # threshold value met so far
-                    LOGGER.debug(
-                        'met cutoff at %f',
-                        goal_met_cutoffs_array[next_threshold_index])
-                    mask_managed_raster.flush(0)
-                    pre, post = os.path.splitext(os.path.basename(
-                        mask_raster_path))
-                    target_step_raster_path = os.path.join(
-                        output_directory, ('%s_%f%s' % (
-                            pre, goal_met_cutoffs_array[next_threshold_index],
-                            post)))
-                    shutil.copyfile(
-                        mask_raster_path, target_step_raster_path)
-                    step_prop_list.append(
-                        (<double>(count)/<double>(valid_pixel_count),
-                         numpy.array(prop_met_so_far)))
-                    next_threshold_index += 1
-            else:
+            if mask_managed_raster.get(x, y) != mask_nodata:
+                # get the next pixel
                 continue
+
+            count += 1
+            mask_managed_raster.set(x, y, 1)
+            pixels_set += 1
+            # update all the pools
+            min_prop_left = 1.0
+            for i in range(n_rasters):
+                active_val = (<_ManagedRaster>managed_raster_array[i]).get(
+                    x, y)
+                # we could get a garbage area so check first
+                if active_val > 0:
+                    prop_met_so_far[i] += active_val
+                    if (prop_met_so_far[i] < min_prop_left):
+                        min_prop_left = prop_met_so_far[i]
+            if (min_prop_left >
+                    goal_met_cutoffs_array[next_threshold_index]):
+                # copy the mask to an intermediate value and save each
+                # threshold value met so far
+                LOGGER.debug(
+                    'met cutoff at %f',
+                    goal_met_cutoffs_array[next_threshold_index])
+                mask_managed_raster.flush(1)
+                pre, post = os.path.splitext(os.path.basename(
+                    mask_raster_path))
+                target_step_raster_path = os.path.join(
+                    output_directory, ('%s_%f%s' % (
+                        pre, goal_met_cutoffs_array[next_threshold_index],
+                        post)))
+                shutil.copyfile(
+                    mask_raster_path, target_step_raster_path)
+                step_prop_list.append(
+                    (<double>(count)/<double>(valid_pixel_count),
+                     numpy.array(prop_met_so_far)))
+                next_threshold_index += 1
             break
 
     with open(os.path.join(
