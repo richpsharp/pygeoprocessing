@@ -326,9 +326,14 @@ cdef class _ManagedRaster:
             <int>block_index, <double*>double_buffer, removed_value_list)
 
         if self.write_mode:
-            raster = gdal.OpenEx(
-                self.raster_path, gdal.GA_Update | gdal.OF_RASTER)
-            raster_band = raster.GetRasterBand(self.band_id)
+            try:
+                raster = gdal.OpenEx(
+                    self.raster_path, gdal.GA_Update | gdal.OF_RASTER)
+                raster_band = raster.GetRasterBand(self.band_id)
+            except Exception:
+                print(self.raster_path)
+                print(os.path.exists(self.raster_path))
+                raise
 
         block_array = numpy.empty(
             (self.block_ysize, self.block_xsize), dtype=numpy.double)
@@ -1406,8 +1411,8 @@ def count_valid(raster_path_band):
 @cython.nonecheck(False)
 @cython.cdivision(True)
 def raster_optimization(
-        raster_path_band_list, target_working_directory, target_suffix=None,
-        goal_met_cutoffs=[x/100 for x in range(5, 101, 5)],
+        raster_path_band_list, churn_directory, output_directory,
+        target_suffix=None, goal_met_cutoffs=[x/100 for x in range(5, 101, 5)],
         heap_buffer_size=2**28, ffi_buffer_size=2**10):
     """Create a optimized raster selection given the target sum list.
 
@@ -1441,11 +1446,13 @@ def raster_optimization(
     cdef vector[FastFileIteratorIndexVectorPtr] fast_file_iterator_vector_ptr_vector
     cdef int n_cols = 0
     cdef int n_rasters = len(raster_path_band_list)
-    churn_dir = os.path.join(target_working_directory)
-    try:
-        os.makedirs(churn_dir)
-    except OSError:
-        pass
+
+    for dir_path in [churn_directory, output_directory]:
+        try:
+            os.makedirs(dir_path)
+        except OSError:
+            pass
+    task_graph = taskgraph.TaskGraph(churn_directory, -1)
 
     heapfile_list = []
     cdef double[:] prop_met_so_far = numpy.zeros(n_rasters)
@@ -1480,7 +1487,7 @@ def raster_optimization(
                 (pygeoprocessing.get_raster_info(path)[
                     'nodata'][band_id-1], 'raw'))
             normalized_path = os.path.join(
-                churn_dir, f'norm_{os.path.basename(path)}')
+                churn_directory, f'norm_{os.path.basename(path)}')
             pygeoprocessing.raster_calculator([
                 (path, 1), (sum_val, 'raw'),
                 (pygeoprocessing.get_raster_info(path)['nodata'][band_id-1],
@@ -1493,10 +1500,10 @@ def raster_optimization(
             normalized_raster_band_path_list.append((path, band_id))
             normalized_nodata_list.append(
                 (pygeoprocessing.get_raster_info(path)['nodata'][0], 'raw'))
-            prop_met_so_far[index] = -1 #  -1 shouldn't be considered
+            prop_met_so_far[index] = -1  #  -1 shouldn't be considered
 
     # calcualte the sum of all the normalized rasters for a preconditioner
-    normalized_sum_raster_path = os.path.join(churn_dir, 'norm_sum.tif')
+    normalized_sum_raster_path = os.path.join(churn_directory, 'norm_sum.tif')
     pygeoprocessing.raster_calculator(
         [*normalized_raster_band_path_list, *normalized_nodata_list,
          (prop_nodata, 'raw')],
@@ -1519,7 +1526,7 @@ def raster_optimization(
         pixels_processed = 0
         raster_id = os.path.splitext(os.path.basename(raster_path_band[0]))[0]
         working_sort_directory = os.path.join(
-            target_working_directory, raster_id)
+            churn_directory, raster_id)
         LOGGER.debug(working_sort_directory)
         heapfile_directory_list.append(working_sort_directory)
         try:
@@ -1614,7 +1621,7 @@ def raster_optimization(
     else:
         target_suffix = ''
     mask_raster_path = os.path.join(
-        target_working_directory, 'optimal_mask%s.tif' % target_suffix)
+        churn_directory, 'working_mask%s.tif' % target_suffix)
     cdef int mask_nodata = 0
     pygeoprocessing.new_raster_from_base(
         raster_path_band_list[0][0], mask_raster_path, gdal.GDT_Byte,
@@ -1700,10 +1707,12 @@ def raster_optimization(
                         'met cutoff at %f',
                         goal_met_cutoffs_array[next_threshold_index])
                     mask_managed_raster.flush(0)
-                    pre, post = os.path.splitext(mask_raster_path)
-                    target_step_raster_path = ('%s_%f%s' % (
-                        pre, goal_met_cutoffs_array[next_threshold_index],
-                        post))
+                    pre, post = os.path.splitext(os.path.basename(
+                        mask_raster_path))
+                    target_step_raster_path = os.path.join(
+                        output_directory, ('%s_%f%s' % (
+                            pre, goal_met_cutoffs_array[next_threshold_index],
+                            post)))
                     shutil.copyfile(
                         mask_raster_path, target_step_raster_path)
                     step_prop_list.append(
@@ -1715,7 +1724,7 @@ def raster_optimization(
             break
 
     with open(os.path.join(
-            target_working_directory, f'results{target_suffix}.csv'), 'w') as \
+            output_directory, f'results{target_suffix}.csv'), 'w') as \
             results_file:
         results_file.write(
             ',base rasters\n'
