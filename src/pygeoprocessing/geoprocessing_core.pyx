@@ -1523,8 +1523,8 @@ def raster_optimization(
             prop_met_so_far[index] = -1  # -1 means don't consider
 
     cdef int[:] raster_indexes_to_process = numpy.array(
-        valid_raster_index_list, dtype=numpy.int)
-    cdef int valid_raster_count = len(valid_raster_index_list)
+        valid_raster_index_list, dtype=numpy.int32)
+    cdef int valid_raster_count = <int>(len(valid_raster_index_list))
 
     # calcualte the sum of all the normalized rasters for a preconditioner
     normalized_sum_raster_path = os.path.join(churn_directory, 'norm_sum.tif')
