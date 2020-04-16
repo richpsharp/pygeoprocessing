@@ -326,14 +326,25 @@ cdef class _ManagedRaster:
             <int>block_index, <double*>double_buffer, removed_value_list)
 
         if self.write_mode:
-            try:
-                raster = gdal.OpenEx(
-                    self.raster_path, gdal.GA_Update | gdal.OF_RASTER)
-                raster_band = raster.GetRasterBand(self.band_id)
-            except Exception:
-                print(self.raster_path)
-                print(os.path.exists(self.raster_path))
-                raise
+            int try_count = 0
+            while True:
+                # sometimes this raster doesn't open, this will give it a few
+                # tries.
+                try:
+                    raster = gdal.OpenEx(
+                        self.raster_path, gdal.GA_Update | gdal.OF_RASTER)
+                    raster_band = raster.GetRasterBand(self.band_id)
+                    break
+                except Exception:
+                    try_count += 1
+                    print(
+                        "couldn't open %s, exists: %s, try: %d " % (
+                            self.raster_path,
+                            os.path.exists(self.raster_path), try_count))
+                    if try_count < 5:
+                        time.sleep(0.5)
+                    else:
+                        raise
 
         block_array = numpy.empty(
             (self.block_ysize, self.block_xsize), dtype=numpy.double)
