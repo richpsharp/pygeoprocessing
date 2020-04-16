@@ -1463,8 +1463,8 @@ def raster_optimization(
     prop_nodata = -1
 
     # calculate normalized rasters of their total
-    for (path, band_id), sum_val in zip(
-            raster_path_band_list, raster_sum_list):
+    for index, ((path, band_id), sum_val) in enumerate(zip(
+            raster_path_band_list, raster_sum_list)):
         if sum_val > 0:
             raster_path_band_list.append((path, 1))
             raster_nodata_list.append(
@@ -1484,6 +1484,7 @@ def raster_optimization(
             normalized_raster_band_path_list.append((path, band_id))
             normalized_nodata_list.append(
                 (pygeoprocessing.get_raster_info(path)['nodata'][0], 'raw'))
+            prop_to_meet_vals[index] = -1 #  -1 shouldn't be considered
 
     # calcualte the sum of all the normalized rasters for a preconditioner
     normalized_sum_raster_path = os.path.join(churn_dir, 'norm_sum.tif')
@@ -1632,7 +1633,7 @@ def raster_optimization(
                 '%.2f%% complete',
                 100.0 * float(count)/float(valid_pixel_count))
         for i in range(n_rasters):
-            if (prop_to_meet_vals[i] > 0 and
+            if (prop_to_meet_vals[i] >= 0 and
                     (min_prop_met > prop_to_meet_vals[i])):
                 min_prop_index = i
                 min_prop_met = prop_to_meet_vals[i]
