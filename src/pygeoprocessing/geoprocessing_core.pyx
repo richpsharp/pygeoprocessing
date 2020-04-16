@@ -1706,7 +1706,7 @@ def raster_optimization(
                         post))
                     shutil.copyfile(
                         mask_raster_path, target_step_raster_path)
-                    step_prop_list.push_back(
+                    step_prop_list.push(
                         (<double>(count)/<double>(valid_pixel_count),
                          prop_to_meet_vals.copy()))
                     next_threshold_index += 1
