@@ -1619,7 +1619,7 @@ def raster_optimization(
         mask_raster_path, 1, 1)
 
     cdef double[:] running_goal_sum_array = numpy.zeros(n_rasters)
-    cdef double[:] goal_met_cutoffs_array = goal_met_cutoffs.copy()
+    cdef double[:] goal_met_cutoffs_array = numpy.array(goal_met_cutoffs)
     cdef int next_threshold_index=0   # keep track of which threshold
     cdef double min_working_prop
     cdef int i, max_prop_index, x, y
