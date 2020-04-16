@@ -1401,6 +1401,10 @@ def count_valid(raster_path_band):
     return valid_count
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(True)
 def raster_optimization(
         raster_path_band_list, target_working_directory, target_suffix=None,
         goal_met_cutoffs=[x/100 for x in range(5, 101, 5)],
@@ -1632,7 +1636,7 @@ def raster_optimization(
     while True:
         min_prop_index = -1
         min_prop_met = 1.0  # it'll never be bigger than 1.0
-        if count % 1000000 == 0:
+        if count % 10000 == 0:
             LOGGER.debug(
                 '%.2f%% complete',
                 100.0 * float(count)/float(valid_pixel_count))
