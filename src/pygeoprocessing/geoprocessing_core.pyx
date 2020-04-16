@@ -384,6 +384,7 @@ cdef class _ManagedRaster:
         self.lru_cache.clean(removed_value_list, self.lru_cache.size())
 
         raster_band = None
+        raster = None
         if self.write_mode:
             raster = gdal.OpenEx(
                 self.raster_path, gdal.GA_Update | gdal.OF_RASTER)
