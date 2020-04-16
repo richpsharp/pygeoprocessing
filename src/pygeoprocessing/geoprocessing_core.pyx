@@ -1634,7 +1634,9 @@ def raster_optimization(
         max_prop_index = -1
         active_prop_to_meet = 0.0
         if count % 1000000 == 0:
-            LOGGER.debug(count)
+            LOGGER.debug(
+                '%.2f%% complete',
+                100.0 * float(count)/float(valid_pixel_count))
         for i in range(n_rasters):
             if (prop_to_meet_vals[i] > 0 and
                     (prop_to_meet_vals[i] > active_prop_to_meet)):
@@ -1695,6 +1697,9 @@ def raster_optimization(
                         goal_met_cutoffs_array[next_threshold_index]):
                     # copy the mask to an intermediate value and save each
                     # threshold value met so far
+                    LOGGER.debug(
+                        'met cutoff at %f',
+                        goal_met_cutoffs_array[next_threshold_index])
                     mask_managed_raster.flush()
                     target_step_raster_path = (
                         '%s_%f%s' % os.path.splitext(mask_raster_path))
