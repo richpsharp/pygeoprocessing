@@ -1546,7 +1546,6 @@ def raster_optimization(
         dependent_task_list=[normalized_sum_task],
         task_name='count valid pixels')
     cdef long long valid_pixel_count = count_task.get()
-
     task_graph.close()
     task_graph.join()
     del task_graph
@@ -1699,10 +1698,14 @@ def raster_optimization(
         fast_file_iterator_vector_ptr = \
             fast_file_iterator_vector_ptr_vector[min_prop_index]
         if deref(fast_file_iterator_vector_ptr).size() == 0:
-            LOGGER.debug('all done with raster min_prop_index')
+            LOGGER.debug(
+                'all done with raster %s', str(os.path.basename(
+                    raster_path_band_list[min_prop_index][0])))
             valid_raster_count -= 1
             if valid_raster_count == 0:
-                LOGGER.debug('all done with all rasters')
+                LOGGER.debug(
+                    'all done with all rasters: %.2f%%',
+                    100.0 * float(count)/float(valid_pixel_count))
                 break
             raster_index_list = list(raster_indexes_to_process)
             del raster_index_list[min_prop_index]
@@ -1710,7 +1713,7 @@ def raster_optimization(
                 raster_index_list, dtype=numpy.int)
             continue
         while True:
-
+            # attempt to select a pixel
             active_index = (
                 deref(fast_file_iterator_vector_ptr).front().next())
             # update the heap
@@ -1740,7 +1743,6 @@ def raster_optimization(
             if mask_managed_raster.get(x, y) != mask_nodata:
                 # get the next pixel
                 continue
-
             count += 1
             mask_managed_raster.set(x, y, 1)
             pixels_set += 1
@@ -1788,9 +1790,7 @@ def raster_optimization(
             if index >= len(step_prop_list):
                 LOGGER.warn('did not record %s threshold', str(min_prop))
                 break
-            LOGGER.debug('%d %s', index, str(min_prop))
             raster_fill_prop, step_prop_array = step_prop_list[index]
-            LOGGER.debug('%s %s', str(raster_fill_prop), str(step_prop_array))
             results_file.write('%f,%f,' % (min_prop, raster_fill_prop))
             results_file.write(','.join([
                 '%f' % step_val for step_val in step_prop_array]) + '\n')
