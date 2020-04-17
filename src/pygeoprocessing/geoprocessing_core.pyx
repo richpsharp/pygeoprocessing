@@ -1419,10 +1419,10 @@ def count_valid(raster_path_band):
     return valid_count
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.nonecheck(False)
-@cython.cdivision(True)
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
+# @cython.nonecheck(False)
+# @cython.cdivision(True)
 def raster_optimization(
         raster_path_band_list, churn_directory, output_directory,
         target_suffix=None, goal_met_cutoffs=[x/100 for x in range(5, 101, 5)],
