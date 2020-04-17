@@ -1684,6 +1684,13 @@ def raster_optimization(
     cdef int j
 
     csv_path = os.path.join(output_directory, f'results{target_suffix}.csv')
+
+    if valid_pixel_count == 0:
+        with open(csv_path, 'w') as results_file:
+            results_file.write(
+                'no non-nodata pixels were found in this area\n')
+        return 0
+
     with open(csv_path, 'w') as results_file:
         results_file.write(
             ',,base rasters\n'
