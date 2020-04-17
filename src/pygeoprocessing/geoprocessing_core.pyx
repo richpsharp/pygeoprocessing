@@ -71,7 +71,7 @@ cdef extern from "LRUCache.h" nogil:
 
 ctypedef pair[int, double*] BlockBufferPair
 cdef int BLOCK_BITS = 8
-cdef int MANAGED_RASTER_N_BLOCKS = 2**10
+cdef int MANAGED_RASTER_N_BLOCKS = 2**8
 
 # a class to allow fast random per-pixel access to a raster for both setting
 # and reading pixels.
