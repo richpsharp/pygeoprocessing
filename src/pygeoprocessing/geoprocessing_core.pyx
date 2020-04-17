@@ -1796,12 +1796,15 @@ def raster_optimization(
                         '\n')
                     results_file.flush()
                 next_threshold_index += 1
-                if next_threshold_index >= len(goal_met_cutoffs) or \
-                        (goal_met_cutoffs[next_threshold_index] >= 1):
+                if next_threshold_index >= len(goal_met_cutoffs):
                     LOGGER.debug('met threshold max')
+                    break
+                if goal_met_cutoffs[next_threshold_index] >= 1:
+                    LOGGER.debug('next cutoff is >= 100% no need to process')
                     break
             break
 
+    LOGGER.debug('met all requirements, freeing memory')
     # free all the iterator memory
     while fast_file_iterator_vector_ptr_vector.size() > 0:
         fast_file_iterator_vector_ptr = \
@@ -1814,6 +1817,7 @@ def raster_optimization(
             deref(fast_file_iterator_vector_ptr).pop_back()
 
     # delete all the heap files
+    LOGGER.debug('deleting heap files')
     for heapfile_dir in heapfile_directory_list:
         try:
             shutil.rmtree(heapfile_dir)
