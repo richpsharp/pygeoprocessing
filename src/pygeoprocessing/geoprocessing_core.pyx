@@ -1729,7 +1729,7 @@ def raster_optimization(
                     100.0 * float(count)/float(valid_pixel_count))
                 break
             raster_index_list = list(raster_indexes_to_process)
-            del raster_index_list[min_prop_index]
+            del raster_index_list[raster_index_list.index(min_prop_index)]
             raster_indexes_to_process = numpy.array(
                 raster_index_list, dtype=numpy.int)
             continue
