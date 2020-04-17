@@ -1731,7 +1731,7 @@ def raster_optimization(
             raster_index_list = list(raster_indexes_to_process)
             del raster_index_list[raster_index_list.index(min_prop_index)]
             raster_indexes_to_process = numpy.array(
-                raster_index_list, dtype=numpy.int)
+                raster_index_list, dtype=numpy.int32)
             continue
         while work_to_do:
             # attempt to select a pixel
@@ -1782,7 +1782,8 @@ def raster_optimization(
                 # copy the mask to an intermediate value and save each
                 # threshold value met so far
                 LOGGER.debug(
-                    'met cutoff at %f',
+                    '%s met cutoff at %f',
+                    os.path.basename(output_directory),
                     goal_met_cutoffs_array[next_threshold_index])
                 mask_managed_raster.flush(1)
                 pre, post = os.path.splitext(os.path.basename(
