@@ -1830,3 +1830,5 @@ def raster_optimization(
         except OSError:
             # you never know if this might fail!
             LOGGER.warning('unable to remove %s', heapfile_dir)
+
+    return 0
