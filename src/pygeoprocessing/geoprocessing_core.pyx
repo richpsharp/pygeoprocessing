@@ -1784,7 +1784,7 @@ def raster_optimization(
                     (<double>(count)/<double>(valid_pixel_count),
                      numpy.array(prop_met_so_far)))
 
-                with open(csv_path, 'wa') as results_file:
+                with open(csv_path, 'a') as results_file:
                     raster_fill_prop = (
                         <double>(count)/<double>(valid_pixel_count))
                     step_prop_array = numpy.array(prop_met_so_far)
