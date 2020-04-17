@@ -319,6 +319,7 @@ cdef class _ManagedRaster:
             win_ysize=win_ysize).astype(numpy.float64)
         raster_band = None
         raster = None
+
         double_buffer = <double*>PyMem_Malloc(
             (sizeof(double) << self.block_xbits) * win_ysize)
         for xi_copy in range(win_xsize):
@@ -338,6 +339,8 @@ cdef class _ManagedRaster:
                     raster_band = raster.GetRasterBand(self.band_id)
                     break
                 except Exception:
+                    raster = None
+                    raster_band = None
                     tries_left -= 1
                     print(
                         "couldn't open %s, exists: %s, try: %d " % (
@@ -451,9 +454,9 @@ cdef class _ManagedRaster:
         if self.write_mode:
             if hard:
                 raster_band.FlushCache()
-                raster.FlushCache()
             raster_band = None
             raster = None
+            time.sleep(1.1)  # wait for a writer spawn
 
 
 # This resolves an issue on Mac OS X Catalina where cimporting ``push_heap``
@@ -1785,9 +1788,6 @@ def raster_optimization(
                     '%s met cutoff at %f',
                     os.path.basename(output_directory),
                     goal_met_cutoffs_array[next_threshold_index])
-                # try closing and reopening just to get the thing copied
-                mask_managed_raster.close()
-
                 pre, post = os.path.splitext(os.path.basename(
                     mask_raster_path))
                 target_step_raster_path = os.path.join(
@@ -1796,7 +1796,6 @@ def raster_optimization(
                         post)))
                 shutil.copyfile(
                     mask_raster_path, target_step_raster_path)
-                mask_managed_raster = _ManagedRaster(mask_raster_path, 1, 1)
                 step_prop_list.append(
                     (<double>(count)/<double>(valid_pixel_count),
                      numpy.array(prop_met_so_far)))
