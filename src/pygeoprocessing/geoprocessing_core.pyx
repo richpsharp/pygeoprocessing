@@ -1687,7 +1687,8 @@ def raster_optimization(
             ','.join([os.path.basename(path_band[0])
                       for path_band in raster_path_band_list]) + '\n')
 
-    while True:
+    cdef int work_to_do = 1
+    while work_to_do:
         min_prop_index = -1
         min_prop_met = 1.0  # it'll never be bigger than 1.0
         if count % 10000 == 0:
@@ -1701,6 +1702,7 @@ def raster_optimization(
                 min_prop_met = prop_met_so_far[j]
         if min_prop_index == -1:
             LOGGER.warning('all targets met')
+            work_to_do = 0
             break
 
         fast_file_iterator_vector_ptr = \
@@ -1720,7 +1722,7 @@ def raster_optimization(
             raster_indexes_to_process = numpy.array(
                 raster_index_list, dtype=numpy.int)
             continue
-        while True:
+        while work_to_do:
             # attempt to select a pixel
             active_index = (
                 deref(fast_file_iterator_vector_ptr).front().next())
@@ -1797,10 +1799,13 @@ def raster_optimization(
                     results_file.flush()
                 next_threshold_index += 1
                 if next_threshold_index >= len(goal_met_cutoffs):
+                    work_to_do = 0
                     LOGGER.debug('met threshold max')
                     break
-                LOGGER.debug('next cutoff: %f', goal_met_cutoffs[next_threshold_index])
+                LOGGER.debug(
+                    'next cutoff: %f', goal_met_cutoffs[next_threshold_index])
                 if goal_met_cutoffs[next_threshold_index] >= 1:
+                    work_to_do = 0
                     LOGGER.debug('next cutoff is >= 100% no need to process')
                     break
             break
