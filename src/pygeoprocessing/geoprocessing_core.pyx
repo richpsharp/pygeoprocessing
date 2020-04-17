@@ -1799,6 +1799,7 @@ def raster_optimization(
                 if next_threshold_index >= len(goal_met_cutoffs):
                     LOGGER.debug('met threshold max')
                     break
+                LOGGER.debug('next cutoff: %f', goal_met_cutoffs[next_threshold_index])
                 if goal_met_cutoffs[next_threshold_index] >= 1:
                     LOGGER.debug('next cutoff is >= 100% no need to process')
                     break
