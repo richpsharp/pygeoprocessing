@@ -71,7 +71,7 @@ cdef extern from "LRUCache.h" nogil:
 
 ctypedef pair[int, double*] BlockBufferPair
 cdef int BLOCK_BITS = 8
-cdef int MANAGED_RASTER_N_BLOCKS = 2**6
+cdef int MANAGED_RASTER_N_BLOCKS = 2**10
 
 # a class to allow fast random per-pixel access to a raster for both setting
 # and reading pixels.
@@ -1794,6 +1794,7 @@ def raster_optimization(
                     output_directory, ('%s_%f%s' % (
                         pre, goal_met_cutoffs_array[next_threshold_index],
                         post)))
+                mask_managed_raster.flush(1)
                 shutil.copyfile(
                     mask_raster_path, target_step_raster_path)
                 step_prop_list.append(
