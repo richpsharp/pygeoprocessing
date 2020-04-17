@@ -1785,7 +1785,9 @@ def raster_optimization(
                     '%s met cutoff at %f',
                     os.path.basename(output_directory),
                     goal_met_cutoffs_array[next_threshold_index])
-                mask_managed_raster.flush(1)
+                # try closing and reopening just to get the thing copied
+                mask_managed_raster.close()
+
                 pre, post = os.path.splitext(os.path.basename(
                     mask_raster_path))
                 target_step_raster_path = os.path.join(
@@ -1794,6 +1796,7 @@ def raster_optimization(
                         post)))
                 shutil.copyfile(
                     mask_raster_path, target_step_raster_path)
+                mask_managed_raster = _ManagedRaster(mask_raster_path, 1, 1)
                 step_prop_list.append(
                     (<double>(count)/<double>(valid_pixel_count),
                      numpy.array(prop_met_so_far)))
