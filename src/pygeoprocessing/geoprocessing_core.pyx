@@ -1794,13 +1794,13 @@ def raster_optimization(
                     output_directory, ('%s_%f%s' % (
                         pre, goal_met_cutoffs_array[next_threshold_index],
                         post)))
-                mask_managed_raster.flush(1)
+                mask_managed_raster.close()
                 shutil.copyfile(
                     mask_raster_path, target_step_raster_path)
                 step_prop_list.append(
                     (<double>(count)/<double>(valid_pixel_count),
                      numpy.array(prop_met_so_far)))
-
+                mask_managed_raster = _ManagedRaster(mask_raster_path, 1, 1)
                 with open(csv_path, 'a') as results_file:
                     raster_fill_prop = (
                         <double>(count)/<double>(valid_pixel_count))
