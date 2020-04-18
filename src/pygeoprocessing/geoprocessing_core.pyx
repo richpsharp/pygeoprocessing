@@ -1695,11 +1695,18 @@ def raster_optimization(
         return 0
 
     with open(csv_path, 'w') as results_file:
-        results_file.write(
+        header_string = (
             ',,base rasters\n'
             'min total met,proportion of area selected,' +
             ','.join([os.path.basename(path_band[0])
                       for path_band in raster_path_band_list]) + '\n')
+        LOGGER.debug(header_string)
+        LOGGER.debug(raster_path_band_list)
+        LOGGER.debug(','.join([os.path.basename(path_band[0])
+                               for path_band in raster_path_band_list]))
+        results_file.write(header_string)
+
+    return
 
     cdef int work_to_do = 1
     while work_to_do:
