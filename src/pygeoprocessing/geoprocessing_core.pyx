@@ -1433,7 +1433,7 @@ def raster_optimization(
     """Create a optimized raster selection given the target sum list.
 
     Args:
-        raster_band_list (list): list of (raster_path, band_id) tuples.
+        raster_path_band_list (list): list of (raster_path, band_id) tuples.
         target_working_directory (str): path to a directory this function can
             use to build up optimization caches and results. This directory
             will have a "./churn" subdirectory containing intermediate files
