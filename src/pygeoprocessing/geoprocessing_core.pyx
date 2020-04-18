@@ -1777,13 +1777,16 @@ def raster_optimization(
             # update all the pools
             min_prop_left = 1.0
             for i in range(n_rasters):
+                if prop_met_so_far[i] < 0:
+                    # it's an invalid raster, no need to check
+                    continue
                 active_val = (<_ManagedRaster>managed_raster_array[i]).get(
                     x, y)
                 # we could get a garbage area so check first
                 if active_val > 0:
                     prop_met_so_far[i] += active_val
-                    if (prop_met_so_far[i] < min_prop_left):
-                        min_prop_left = prop_met_so_far[i]
+                if prop_met_so_far[i] < min_prop_left:
+                    min_prop_left = prop_met_so_far[i]
             if (min_prop_left >
                     goal_met_cutoffs_array[next_threshold_index]):
                 # copy the mask to an intermediate value and save each
