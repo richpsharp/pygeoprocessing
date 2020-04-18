@@ -1389,7 +1389,7 @@ def sum_rasters_op(*array_nodata_list):
     n = len(array_nodata_list)
     for array, nodata in zip(
             array_nodata_list[0:n//2], array_nodata_list[n//2::]):
-        valid_mask = ~numpy.isclose(array, nodata)
+        valid_mask = ~numpy.isclose(array, nodata) & (array > 0)
         total_valid_mask |= valid_mask
         result[valid_mask] += array[valid_mask]
     result[~total_valid_mask] = array_nodata_list[-1]
@@ -1403,7 +1403,7 @@ def sum_raster(raster_path_band):
 
     raster_sum = 0.0
     for _, array in pygeoprocessing.iterblocks(raster_path_band):
-        valid_mask = ~numpy.isclose(array, nodata)
+        valid_mask = ~numpy.isclose(array, nodata) & (array > 0)
         raster_sum += numpy.sum(array[valid_mask])
 
     return raster_sum
@@ -1499,7 +1499,6 @@ def raster_optimization(
     for index, ((path, band_id), sum_val) in enumerate(zip(
             raster_path_band_list, raster_sum_list)):
         if sum_val > 0:
-            raster_path_band_list.append((path, 1))
             raster_nodata_list.append(
                 (pygeoprocessing.get_raster_info(path)[
                     'nodata'][band_id-1], 'raw'))
@@ -1510,8 +1509,8 @@ def raster_optimization(
                 args=([
                     (path, 1), (sum_val, 'raw'),
                     (pygeoprocessing.get_raster_info(path)['nodata'][band_id-1],
-                     'raw'), (norm_nodata, 'raw')], normalize_op, normalized_path,
-                    gdal.GDT_Float64, norm_nodata),
+                     'raw'), (norm_nodata, 'raw')], normalize_op,
+                    normalized_path, gdal.GDT_Float64, norm_nodata),
                 kwargs={'calc_raster_stats': False},
                 target_path_list=[normalized_path],
                 task_name=f'normalize {path}')
@@ -1705,8 +1704,6 @@ def raster_optimization(
         LOGGER.debug(','.join([os.path.basename(path_band[0])
                                for path_band in raster_path_band_list]))
         results_file.write(header_string)
-
-    return
 
     cdef int work_to_do = 1
     while work_to_do:
