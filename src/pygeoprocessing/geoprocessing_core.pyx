@@ -1792,6 +1792,8 @@ def raster_optimization(
                     '%s met cutoff at %f',
                     os.path.basename(output_directory),
                     goal_met_cutoffs_array[next_threshold_index])
+                for j in range(n_rasters):
+                    LOGGER.debug('%d: %f', j, prop_met_so_far[j])
                 pre, post = os.path.splitext(os.path.basename(
                     mask_raster_path))
                 target_step_raster_path = os.path.join(
