@@ -1696,7 +1696,7 @@ def raster_optimization(
     with open(csv_path, 'w') as results_file:
         header_string = (
             ',,base rasters\n'
-            'min total met,proportion of area selected,' +
+            'proportion of area selected,min total met,' +
             ','.join([os.path.basename(path_band[0])
                       for path_band in raster_path_band_list]) + '\n')
         LOGGER.debug(header_string)
@@ -1815,8 +1815,8 @@ def raster_optimization(
                         <double>(count)/<double>(valid_pixel_count))
                     step_prop_array = numpy.array(prop_met_so_far)
                     results_file.write('%f,%f,' % (
-                        goal_met_cutoffs_array[next_threshold_index],
-                        raster_fill_prop))
+                        raster_fill_prop,
+                        goal_met_cutoffs_array[next_threshold_index]))
                     results_file.write(','.join([
                         '%f' % step_val for step_val in step_prop_array]) +
                         '\n')
