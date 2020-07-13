@@ -26,13 +26,13 @@ setup(
     name='pygeoprocessing',
     description="PyGeoprocessing: Geoprocessing routines for GIS",
     long_description=LONG_DESCRIPTION,
+    long_description_content_type='text/x-rst',
     maintainer='Rich Sharp',
     maintainer_email='richpsharp@gmail.com',
     url='https://github.com/natcap/pygeoprocessing',
     packages=[
         'pygeoprocessing',
         'pygeoprocessing.routing',
-        'pygeoprocessing.testing',
     ],
     package_dir={
         'pygeoprocessing': 'src/pygeoprocessing'
@@ -55,8 +55,8 @@ setup(
         'Operating System :: Microsoft',
         'Operating System :: POSIX',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Topic :: Scientific/Engineering :: GIS',
         'License :: OSI Approved :: BSD License'
     ],

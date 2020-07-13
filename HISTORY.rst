@@ -1,8 +1,7 @@
 Release History
 ===============
 
-
-Unreleased Changes
+2.0.0 (05-19-2020)
 ------------------
 * Fixed an issue in ``warp_raster`` that would cause the warping of an signed
   byte raster to become an unsigned byte raster. This indirectly fixes the
@@ -10,6 +9,19 @@ Unreleased Changes
   ``warp_raster``.
 * Updated a docstring convention to use "Args:" instead of "Parameters:" to
   be consistent with the Google Python docstring style guide.
+* Adding Python 3.8 support and dropping Python 3.6 support.
+* Adding GDAL 3 support and dropping GDAL 2 support. The only non-backwards
+  compatible issue in GDAL 2 to GDAL 3 is the need to handle Axis Ordering with
+  osr.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER) because of
+  https://trac.osgeo.org/gdal/wiki/rfc73_proj6_wkt2_srsbarn#Axisorderissues?.
+  Since Axis ordering now matters for Geographic CRS the expected order is
+  Lat,Lon but we use osr.OAMS_TRADITIONAL_GIS_ORDER to swap to Lon,Lat.
+* Using osr.CreateCoordinateTransformation() instead of
+  osr.CoordinateTransformation() as the GDAL 3 call.
+* Fixed a bug in convolve_2d that would not ``ignore_nodata`` if the signal
+  raster's nodata value was undefined. Changed the name of this flag to
+  ``ignore_nodata_and_edges`` to reflect its expected functionality.
+* Warped signed byte rasters are now also signed byte rasters.
 * Adding a GitHub Actions-based build job for building wheels and a source
   distribution for a given commit of pygeoprocessing.
 * Updated ``setup.py`` to point the URL project link to the project's new
@@ -26,6 +38,39 @@ Unreleased Changes
   Lat,Lon but we use osr.OAMS_TRADITIONAL_GIS_ORDER to swap to Lon,Lat.
 * Using osr.CreateCoordinateTransformation() instead of
   osr.CoordinateTransformation() as the GDAL 3 call.
+* Added ``set_tol_to_zero`` to ``convolve_2d`` to allow for in-function masking
+  of near-zero results to be set to 0.0.
+* Fixed malformed logging outputs which could be seen during long running
+  ``rasterize`` calls.
+* Renamed all parameters involving Spatial Projections to the form
+  ``[var_id]_projection_wkt``, this involves optional arguments in
+  ``reproject_vector``, ``warp_raster``, ``transform_bounding_box``,
+  and ``align_and_resize_raster_stack`` as well as the return value from
+  ``get_raster_info`` and ``get_vector_info``.
+* Fixed an issue in ``zonal_statistics`` that would crash if an aggregate
+  vector had a feature with no geometry defined. Now the function ignores
+  such features and prints a warning to the log.
+* Fixed a malformed ``ValueError`` message when a corrupt raster was
+  encountered in ``raster_calculator``.
+* Fixes an unnecessary calculation that pre-fills slope raster GeoTIFFs with
+  nodata values.
+* Added a check to ``convolve_2d`` to verify that raster path/band tuples were
+  passed where expected and raise a useful Exception  if not.
+* Removed most of the `pygeoprocessing.testing` module and added the following
+  convenience functions to ``pygeoprocessing``, which should not be used
+  for production code but are useful for testing and scripting:
+
+  * ``raster_to_numpy_array`` - read a single band of a raster into a ``numpy``
+    array, runs the risk of memory error if the raster is too large.
+  * ``numpy_array_to_raster`` - writes a ``numpy`` array to a raster on disk.
+  * ``shapely_geometry_to_vector`` - creates a vector from a list of
+    ``Shapely`` geometry.
+
+* Fixed an issue in ``flow_dir_mfd`` that would cause invalid flow directions
+  on DEMs that had very small numerical delta heights.
+* Fixes an issue in ``convolve_2d`` that would occasionally cause undefined
+  numerical noise in regions where the signal was nodata but ``mask_nodata``
+  was set to ``False``.
 
 1.9.2 (2020-02-06)
 ------------------

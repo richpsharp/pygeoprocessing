@@ -16,29 +16,28 @@ is encoded as:
      4x0
      567
 """
-import time
-import os
 import logging
+import os
 import shutil
 import tempfile
+import time
 
-import numpy
-import pygeoprocessing
-from osgeo import gdal
-
-cimport numpy
 cimport cython
+cimport numpy
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from cython.operator cimport dereference as deref
 from cython.operator cimport preincrement as inc
-from libc.time cimport time_t
 from libc.time cimport time as ctime
+from libc.time cimport time_t
+from libcpp.deque cimport deque
 from libcpp.list cimport list as clist
 from libcpp.pair cimport pair
 from libcpp.queue cimport queue
-from libcpp.stack cimport stack
-from libcpp.deque cimport deque
 from libcpp.set cimport set as cset
+from libcpp.stack cimport stack
+from osgeo import gdal
+import numpy
+import pygeoprocessing
 
 LOGGER = logging.getLogger(__name__)
 
@@ -468,8 +467,21 @@ cdef class _ManagedRaster:
 
         raster_band = None
         if self.write_mode:
-            raster = gdal.OpenEx(
-                self.raster_path, gdal.GA_Update | gdal.OF_RASTER)
+            max_retries = 5
+            while max_retries > 0:
+                raster = gdal.OpenEx(
+                    self.raster_path, gdal.GA_Update | gdal.OF_RASTER)
+                if raster is None:
+                    max_retries -= 1
+                    LOGGER.error(
+                        f'unable to open {self.raster_path}, retrying...')
+                    time.sleep(0.2)
+                    continue
+                break
+            if max_retries == 0:
+                raise ValueError(
+                    f'unable to open {self.raster_path} in '
+                    'ManagedRaster.flush')
             raster_band = raster.GetRasterBand(self.band_id)
 
         block_array = numpy.empty(
@@ -1946,8 +1958,8 @@ def flow_dir_mfd(
                         n_drain_distance = drain_distance + (
                             SQRT2 if i_n & 1 else 1.0)
 
-                        if is_close(dem_managed_raster.get(
-                                xi_n, yi_n), root_height) and (
+                        if (<double>(dem_managed_raster.get(
+                                xi_n, yi_n)) == root_height) and (
                                 plateau_distance_managed_raster.get(
                                     xi_n, yi_n) > n_drain_distance):
                             # neighbor is at same level and has longer drain

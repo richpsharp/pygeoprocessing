@@ -1,32 +1,27 @@
 # coding=UTF-8
 # distutils: language=c++
 # cython: language_level=3
-import os
-import tempfile
 import logging
-import time
-import sys
-import traceback
+import os
 import shutil
+import sys
+import tempfile
+import time
+import traceback
 
-
-from cpython.mem cimport PyMem_Malloc, PyMem_Free
-cimport numpy
-import numpy
 cimport cython
-from libcpp.list cimport list as clist
+cimport libcpp.algorithm
+cimport numpy
 from cython.operator cimport dereference as deref
 from cython.operator cimport preincrement as inc
-from libcpp.set cimport set as cset
-from libcpp.pair cimport pair
-from libcpp.vector cimport vector
-cimport libcpp.algorithm
+from libc.stdio cimport fclose
 from libc.stdio cimport FILE
 from libc.stdio cimport fopen
-from libc.stdio cimport fwrite
 from libc.stdio cimport fread
-from libc.stdio cimport fclose
+from libc.stdio cimport fwrite
+from libcpp.vector cimport vector
 from osgeo import gdal
+import numpy
 import pygeoprocessing
 import taskgraph
 
@@ -538,7 +533,6 @@ def _distance_transform_edt(
     raster_info = pygeoprocessing.get_raster_info(region_raster_path)
     pygeoprocessing.new_raster_from_base(
         region_raster_path, g_raster_path, gdal.GDT_Float32, [_NODATA],
-        fill_value_list=None,
         raster_driver_creation_tuple=raster_driver_creation_tuple)
     g_raster = gdal.OpenEx(g_raster_path, gdal.OF_RASTER | gdal.GA_Update)
     g_band = g_raster.GetRasterBand(1)
@@ -592,7 +586,7 @@ def _distance_transform_edt(
 
     pygeoprocessing.new_raster_from_base(
         region_raster_path, target_distance_raster_path.encode('utf-8'),
-        gdal.GDT_Float32, [distance_nodata], fill_value_list=None,
+        gdal.GDT_Float32, [distance_nodata],
         raster_driver_creation_tuple=raster_driver_creation_tuple)
     target_distance_raster = gdal.OpenEx(
         target_distance_raster_path, gdal.OF_RASTER | gdal.GA_Update)
@@ -758,7 +752,6 @@ def calculate_slope(
     pygeoprocessing.new_raster_from_base(
         base_elevation_raster_path_band[0], target_slope_path,
         gdal.GDT_Float32, [slope_nodata],
-        fill_value_list=[float(slope_nodata)],
         raster_driver_creation_tuple=raster_driver_creation_tuple)
     target_slope_raster = gdal.OpenEx(target_slope_path, gdal.GA_Update)
     target_slope_band = target_slope_raster.GetRasterBand(1)
