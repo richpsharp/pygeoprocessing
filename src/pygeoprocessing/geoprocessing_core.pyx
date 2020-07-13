@@ -9,9 +9,16 @@ import tempfile
 import time
 import traceback
 
+
 cimport cython
 cimport libcpp.algorithm
 cimport numpy
+
+import numpy
+import pygeoprocessing
+import taskgraph
+
+from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from cython.operator cimport dereference as deref
 from cython.operator cimport preincrement as inc
 from libc.stdio cimport fclose
@@ -19,11 +26,11 @@ from libc.stdio cimport FILE
 from libc.stdio cimport fopen
 from libc.stdio cimport fread
 from libc.stdio cimport fwrite
+from libcpp.list cimport list as clist
+from libcpp.pair cimport pair
+from libcpp.set cimport set as cset
 from libcpp.vector cimport vector
 from osgeo import gdal
-import numpy
-import pygeoprocessing
-import taskgraph
 
 
 DEFAULT_GTIFF_CREATION_TUPLE_OPTIONS = ('GTIFF', (
