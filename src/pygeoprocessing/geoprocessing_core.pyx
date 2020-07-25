@@ -1362,10 +1362,13 @@ ctypedef vector[FastFileIteratorIndexDoublePtr]* FastFileIteratorIndexVectorPtr
 
 
 def normalize_op(base_array, total_sum, base_nodata, target_nodata):
-    """Divide base by total and set nodata to 0."""
+    """Divide base_array by total sum where valid."""
     result = numpy.empty(base_array.shape, dtype=numpy.float64)
     result[:] = target_nodata
-    valid_mask = ~numpy.isclose(base_array, base_nodata)
+    if base_data is not None:
+        valid_mask = ~numpy.isclose(base_array, base_nodata)
+    else:
+        valid_mask = numpy.ones(result.shape, dtype=numpy.bool)
     result[valid_mask] = (
         base_array[valid_mask].astype(numpy.float64) / total_sum)
     return result
@@ -1403,7 +1406,9 @@ def sum_raster(raster_path_band):
 
     raster_sum = 0.0
     for _, array in pygeoprocessing.iterblocks(raster_path_band):
-        valid_mask = ~numpy.isclose(array, nodata) & (array > 0)
+        valid_mask = array > 0
+        if nodata is not None:
+            valid_mask = valid_mask & (~numpy.isclose(array, nodata))
         raster_sum += numpy.sum(array[valid_mask])
 
     return raster_sum
@@ -1416,7 +1421,9 @@ def count_valid(raster_path_band):
 
     valid_count = 0
     for _, array in pygeoprocessing.iterblocks(raster_path_band):
-        valid_mask = ~numpy.isclose(array, nodata) & (array > 0)
+        valid_mask = array > 0
+        if nodata is not None:
+            valid_mask = valid_mask & ~numpy.isclose(array, nodata)
         valid_count += numpy.count_nonzero(valid_mask)
 
     return valid_count
@@ -1548,6 +1555,7 @@ def raster_optimization(
         dependent_task_list=[normalized_sum_task],
         task_name='count valid pixels')
     cdef long long valid_pixel_count = count_task.get()
+    LOGGER.debug(f'valid pixel count: {valid_pixel_count}')
     task_graph.close()
     task_graph.join()
     del task_graph
@@ -1598,7 +1606,6 @@ def raster_optimization(
             # but don't do those either)
             valid_mask = (
                 ~numpy.isclose(block_data, nodata) &
-                ~numpy.isclose(block_data, 0) &
                 (block_data > 0))
             # -1 to reverse sort from large to small
             base_data = -block_data[valid_mask]
@@ -1804,8 +1811,11 @@ def raster_optimization(
                         pre, goal_met_cutoffs_array[next_threshold_index],
                         post)))
                 mask_managed_raster.close()
-                shutil.copyfile(
-                    mask_raster_path, target_step_raster_path)
+                mask_raster = gdal.OpenEx(mask_raster_path, gdal.OF_RASTER)
+                gtiff_driver = gdal.GetDriverByName('GTiff')
+                gtiff_driver.CreateCopy(target_step_raster_path, mask_raster)
+                mask_raster = None
+
                 step_prop_list.append(
                     (<double>(count)/<double>(valid_pixel_count),
                      numpy.array(prop_met_so_far)))
