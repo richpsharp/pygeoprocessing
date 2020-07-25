@@ -1365,7 +1365,7 @@ def normalize_op(base_array, total_sum, base_nodata, target_nodata):
     """Divide base_array by total sum where valid."""
     result = numpy.empty(base_array.shape, dtype=numpy.float64)
     result[:] = target_nodata
-    if base_data is not None:
+    if target_nodata is not None:
         valid_mask = ~numpy.isclose(base_array, base_nodata)
     else:
         valid_mask = numpy.ones(result.shape, dtype=numpy.bool)
