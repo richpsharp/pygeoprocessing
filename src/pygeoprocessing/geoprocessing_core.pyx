@@ -1724,6 +1724,7 @@ def raster_optimization(
         results_file.write(header_string)
 
     cdef int work_to_do = 1
+    LOGGER.debug(f'about to start optimization loop. count is {count}')
     while work_to_do:
         min_prop_index = -1
         min_prop_met = 1.0  # it'll never be bigger than 1.0
