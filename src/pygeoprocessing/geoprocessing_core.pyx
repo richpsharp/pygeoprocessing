@@ -1474,6 +1474,8 @@ def raster_optimization(
     cdef long long n_cols = 0
     cdef int n_rasters = len(raster_path_band_list)
 
+    LOGGER.debug('initalizing optimization')
+
     for dir_path in [churn_directory, output_directory]:
         try:
             os.makedirs(dir_path)
@@ -1494,6 +1496,7 @@ def raster_optimization(
         LOGGER.error(error_message)
         raise RuntimeError(error_message)
 
+    LOGGER.debug('summing rasters')
     raster_sum_list = []
     for raster_path_band in raster_path_band_list:
         raster_sum_list.append(sum_raster(raster_path_band))
@@ -1504,6 +1507,7 @@ def raster_optimization(
     norm_nodata = -1
 
     # calculate normalized rasters of their total
+    LOGGER.debug('normalizing rasters')
     cdef int index
     normalize_task_list = []
     valid_raster_index_list = []
@@ -1540,6 +1544,7 @@ def raster_optimization(
     cdef int valid_raster_count = <int>(len(valid_raster_index_list))
 
     # calculate the sum of all the normalized rasters for a preconditioner
+    LOGGER.debug('sum all normalized rasters')
     normalized_sum_raster_path = os.path.join(churn_directory, 'norm_sum.tif')
     normalized_sum_task = task_graph.add_task(
         func=pygeoprocessing.raster_calculator,
@@ -1553,6 +1558,7 @@ def raster_optimization(
         target_path_list=[normalized_sum_raster_path],
         task_name='sum normalized rasters')
 
+    LOGGER.debug('count valid pixels')
     count_task = task_graph.add_task(
         func=count_valid,
         args=((normalized_sum_raster_path, 1),),
@@ -1571,6 +1577,7 @@ def raster_optimization(
         for i in range(n_rasters)])
 
     # sort base rasters and the normalized sum
+    LOGGER.debug('sort rasters')
     heapfile_directory_list = []
     for raster_path_band in normalized_raster_band_path_list:
         last_update = time.time()
@@ -1670,6 +1677,7 @@ def raster_optimization(
         fast_file_iterator_vector_ptr_vector.push_back(
             fast_file_iterator_vector_ptr)
 
+    LOGGER.debug('all prepped, starting optimization')
     if target_suffix is not None:
         target_suffix = f'_{target_suffix}'
     else:
