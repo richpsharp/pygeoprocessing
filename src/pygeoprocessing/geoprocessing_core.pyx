@@ -1365,14 +1365,16 @@ ctypedef vector[FastFileIteratorIndexDoublePtr]* FastFileIteratorIndexVectorPtr
 
 def normalize_op(base_array, total_sum, base_nodata, target_nodata):
     """Divide base_array by total sum where valid."""
+    result = numpy.copy(base_array.astype(numpy.float64))
+    result[numpy.isclose(result, 0)] = 0.0
     result = numpy.empty(base_array.shape, dtype=numpy.float64)
     result[:] = target_nodata
     if base_nodata is not None:
-        valid_mask = ~numpy.isclose(base_array, base_nodata)
+        nodata_mask = numpy.isclose(base_array, base_nodata)
+        result[nodata_mask] = target_nodata
     else:
-        valid_mask = numpy.ones(result.shape, dtype=numpy.bool)
-    result[valid_mask] = (
-        base_array[valid_mask].astype(numpy.float64) / total_sum)
+        nodata_mask = numpy.zeros(result.shape, dtype=numpy.bool)
+    result[~nodata_mask] = result[~nodata_mask] / total_sum
     return result
 
 
