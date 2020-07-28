@@ -1367,8 +1367,6 @@ def normalize_op(base_array, total_sum, base_nodata, target_nodata):
     """Divide base_array by total sum where valid."""
     result = numpy.copy(base_array.astype(numpy.float64))
     result[numpy.isclose(result, 0)] = 0.0
-    result = numpy.empty(base_array.shape, dtype=numpy.float64)
-    result[:] = target_nodata
     if base_nodata is not None:
         nodata_mask = numpy.isclose(base_array, base_nodata)
         result[nodata_mask] = target_nodata
@@ -1474,7 +1472,7 @@ def raster_optimization(
     cdef long long n_cols = 0
     cdef int n_rasters = len(raster_path_band_list)
 
-    LOGGER.debug('initalizing optimization')
+    LOGGER.debug('initializing optimization')
 
     for dir_path in [churn_directory, output_directory]:
         try:
@@ -1513,6 +1511,7 @@ def raster_optimization(
     valid_raster_index_list = []
     for index, ((path, band_id), sum_val) in enumerate(zip(
             raster_path_band_list, raster_sum_list)):
+        LOGGER.debug(f'sum: {sum_val} for {path}')
         if sum_val > 0:
             raster_nodata_list.append(
                 (pygeoprocessing.get_raster_info(path)[
