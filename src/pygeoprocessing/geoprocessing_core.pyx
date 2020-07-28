@@ -1782,7 +1782,6 @@ def raster_optimization(
             if active_index == -1:
                 LOGGER.warning('got active index -1!!!')
                 break
-            LOGGER.debug(active_index)
             x = active_index % n_cols
             y = active_index // n_cols
             # check that the pixel hasn't already been selected
