@@ -2,13 +2,13 @@
 # distutils: language=c++
 # cython: language_level=3
 import logging
+import math
 import os
 import shutil
 import sys
 import tempfile
 import time
 import traceback
-
 
 cimport cython
 cimport libcpp.algorithm
@@ -1268,7 +1268,7 @@ def _raster_band_percentile_double(
     raster_info = pygeoprocessing.get_raster_info(
         base_raster_path_band[0])
     nodata = raster_info['nodata'][base_raster_path_band[1]-1]
-    n_pixels = numpy.prod(raster_info['raster_size'])
+    n_pixels = math.prod(raster_info['raster_size'])
     pixels_processed = 0
 
     last_update = time.time()
@@ -1278,8 +1278,10 @@ def _raster_band_percentile_double(
         pixels_processed += block_data.size
         if time.time() - last_update > 5.0:
             LOGGER.debug(
-                'data sort to heap %.2f%% complete',
-                (100.*pixels_processed)/n_pixels)
+                f'data sort to heap {(100.*pixels_processed)/n_pixels}% '
+                f'complete {pixels_processed} pixels processed '
+                f'{n_pixels} total')
+
             last_update = time.time()
         buffer_data = numpy.sort(
             block_data[~numpy.isclose(block_data, nodata)]).astype(
@@ -1365,7 +1367,7 @@ def normalize_op(base_array, total_sum, base_nodata, target_nodata):
     """Divide base_array by total sum where valid."""
     result = numpy.empty(base_array.shape, dtype=numpy.float64)
     result[:] = target_nodata
-    if target_nodata is not None:
+    if base_nodata is not None:
         valid_mask = ~numpy.isclose(base_array, base_nodata)
     else:
         valid_mask = numpy.ones(result.shape, dtype=numpy.bool)
@@ -1467,7 +1469,7 @@ def raster_optimization(
     cdef FastFileIteratorIndexDoublePtr fast_file_iterator
     cdef FastFileIteratorIndexVectorPtr fast_file_iterator_vector_ptr
     cdef vector[FastFileIteratorIndexVectorPtr] fast_file_iterator_vector_ptr_vector
-    cdef int n_cols = 0
+    cdef long long n_cols = 0
     cdef int n_rasters = len(raster_path_band_list)
 
     for dir_path in [churn_directory, output_directory]:
@@ -1535,7 +1537,7 @@ def raster_optimization(
         valid_raster_index_list, dtype=numpy.int32)
     cdef int valid_raster_count = <int>(len(valid_raster_index_list))
 
-    # calcualte the sum of all the normalized rasters for a preconditioner
+    # calculate the sum of all the normalized rasters for a preconditioner
     normalized_sum_raster_path = os.path.join(churn_directory, 'norm_sum.tif')
     normalized_sum_task = task_graph.add_task(
         func=pygeoprocessing.raster_calculator,
@@ -1584,7 +1586,7 @@ def raster_optimization(
         raster_info = pygeoprocessing.get_raster_info(
             raster_path_band[0])
         nodata = raster_info['nodata'][raster_path_band[1]-1]
-        n_pixels = numpy.prod(raster_info['raster_size'])
+        n_pixels = math.prod(raster_info['raster_size'])
         sum_val = 0.0
         n_elements = 0
         file_index = 0
@@ -1614,8 +1616,8 @@ def raster_optimization(
                 continue
 
             flat_indexes = (
-                (yy.astype(numpy.int64)+offset_data['yoff'])*n_cols +
-                (xx.astype(numpy.int64)+offset_data['xoff']))[
+                (yy.astype(numpy.int64)+numpy.int64(offset_data['yoff']))*n_cols +
+                (xx.astype(numpy.int64)+numpy.int64(offset_data['xoff'])))[
                     valid_mask].flatten()
             sorted_data = numpy.diff(numpy.sort(base_data))
             nonzero_sorted_data = sorted_data[sorted_data > 0]
@@ -1667,7 +1669,7 @@ def raster_optimization(
             fast_file_iterator_vector_ptr)
 
     if target_suffix is not None:
-        target_suffix = '_%s' % target_suffix
+        target_suffix = f'_{target_suffix}'
     else:
         target_suffix = ''
     mask_raster_path = os.path.join(
@@ -1682,7 +1684,7 @@ def raster_optimization(
     cdef double[:] goal_met_cutoffs_array = numpy.array(goal_met_cutoffs)
     cdef int next_threshold_index = 0   # keep track of which threshold
     cdef double min_prop_left = 0.0
-    cdef int i, min_prop_index, x, y
+    cdef long long i, min_prop_index, x, y
     cdef int64t active_index
     cdef double min_prop_met
 
@@ -1690,7 +1692,7 @@ def raster_optimization(
     cdef long long count = 0
     cdef long long pixels_set = 0
     step_prop_list = []
-    cdef int j
+    cdef long long j
 
     csv_path = os.path.join(output_directory, f'results{target_suffix}.csv')
 
@@ -1804,12 +1806,12 @@ def raster_optimization(
                     goal_met_cutoffs_array[next_threshold_index])
                 for j in range(n_rasters):
                     LOGGER.debug('%d: %f', j, prop_met_so_far[j])
-                pre, post = os.path.splitext(os.path.basename(
-                    mask_raster_path))
                 target_step_raster_path = os.path.join(
-                    output_directory, ('%s_%f%s' % (
-                        pre, goal_met_cutoffs_array[next_threshold_index],
-                        post)))
+                    output_directory,
+                    'optimal_mask_'
+                    f'{goal_met_cutoffs_array[next_threshold_index]}'
+                    f'{target_suffix}.tif')
+                LOGGER.debug(f'writing to {target_step_raster_path}')
                 mask_managed_raster.close()
                 mask_raster = gdal.OpenEx(mask_raster_path, gdal.OF_RASTER)
                 gtiff_driver = gdal.GetDriverByName('GTiff')

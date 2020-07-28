@@ -3623,6 +3623,7 @@ def numpy_array_to_raster(
         None
     """
     numpy_to_gdal_type = {
+        numpy.dtype(numpy.bool): gdal.GDT_Byte,
         numpy.dtype(numpy.int8): gdal.GDT_Byte,
         numpy.dtype(numpy.uint8): gdal.GDT_Byte,
         numpy.dtype(numpy.int16): gdal.GDT_Int16,
