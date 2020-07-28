@@ -1365,14 +1365,19 @@ ctypedef vector[FastFileIteratorIndexDoublePtr]* FastFileIteratorIndexVectorPtr
 
 def normalize_op(base_array, total_sum, base_nodata, target_nodata):
     """Divide base_array by total sum where valid."""
-    result = numpy.copy(base_array.astype(numpy.float64))
-    result[numpy.isclose(result, 0)] = 0.0
+    result = numpy.empty(base_array.shape, dtype=numpy.float64)
+    result[:] = target_nodata
+
     if base_nodata is not None:
-        nodata_mask = numpy.isclose(base_array, base_nodata)
-        result[nodata_mask] = target_nodata
+        valid_mask = ~numpy.isclose(base_array, base_nodata)
     else:
-        nodata_mask = numpy.zeros(result.shape, dtype=numpy.bool)
-    result[~nodata_mask] = result[~nodata_mask] / total_sum
+        valid_mask = numpy.ones(result.shape, dtype=numpy.bool)
+
+    result[valid_mask] = (
+        base_array[valid_mask].astype(numpy.float64) /
+        numpy.float64(total_sum))
+
+    result[numpy.isclose(base_array, 0)] = 0.0
     return result
 
 
@@ -1522,8 +1527,9 @@ def raster_optimization(
                 func=pygeoprocessing.raster_calculator,
                 args=([
                     (path, 1), (sum_val, 'raw'),
-                    (pygeoprocessing.get_raster_info(path)['nodata'][band_id-1],
-                     'raw'), (norm_nodata, 'raw')], normalize_op,
+                    (pygeoprocessing.get_raster_info(
+                        path)['nodata'][band_id-1], 'raw'),
+                    (norm_nodata, 'raw')], normalize_op,
                     normalized_path, gdal.GDT_Float64, norm_nodata),
                 kwargs={'calc_raster_stats': False},
                 target_path_list=[normalized_path],
@@ -1705,6 +1711,7 @@ def raster_optimization(
 
     csv_path = os.path.join(output_directory, f'results{target_suffix}.csv')
 
+    LOGGER.debug(f'process this many pixels {valid_pixel_count}')
     if valid_pixel_count == 0:
         with open(csv_path, 'w') as results_file:
             results_file.write(
