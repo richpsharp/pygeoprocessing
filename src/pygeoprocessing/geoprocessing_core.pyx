@@ -1708,6 +1708,7 @@ def raster_optimization(
     cdef long long pixels_set = 0
     step_prop_list = []
     cdef long long j
+    cdef double last_val = -1
 
     csv_path = os.path.join(output_directory, f'results{target_suffix}.csv')
 
@@ -1810,6 +1811,11 @@ def raster_optimization(
                 # we could get a garbage area so check first
                 if active_val > 0:
                     prop_met_so_far[i] += active_val
+
+                if last_val != -1:
+                    if last_val < active_val:
+                        LOGGER.error(f'last val was {last_val} but current val i {active_val} differnce of {last_val-active_val}')
+                last_val = active_val
                 if prop_met_so_far[i] < min_prop_left:
                     min_prop_left = prop_met_so_far[i]
             if (min_prop_left >
