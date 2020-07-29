@@ -1805,6 +1805,7 @@ def raster_optimization(
                     prop_met_so_far[i] += active_val
 
                 if last_val != -1:
+                    LOGGER.debug(f'last val: {last_val}, active_val: {active_val}, delta: {last_val-active_val}')
                     if last_val < active_val:
                         LOGGER.error(f'last val was {last_val} but current val i {active_val} differnce of {last_val-active_val}')
                 last_val = active_val
