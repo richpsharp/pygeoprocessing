@@ -1829,7 +1829,9 @@ def raster_optimization(
                 mask_managed_raster.close()
                 mask_raster = gdal.OpenEx(mask_raster_path, gdal.OF_RASTER)
                 gtiff_driver = gdal.GetDriverByName('GTiff')
-                gtiff_driver.CreateCopy(target_step_raster_path, mask_raster)
+                gtiff_driver.CreateCopy(
+                    target_step_raster_path, mask_raster,
+                    options=DEFAULT_GTIFF_CREATION_TUPLE_OPTIONS[1])
                 mask_raster = None
 
                 step_prop_list.append(
