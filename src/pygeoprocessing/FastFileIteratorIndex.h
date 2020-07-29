@@ -147,6 +147,7 @@ template <class DATA_T> class FastFileIteratorIndex{
 template <class DATA_T>
 int FastFileIteratorIndexCompare(FastFileIteratorIndex<DATA_T>* a,
                             FastFileIteratorIndex<DATA_T>* b) {
+    printf('a %f b %f', a->peek(), b->peek());
     return a->peek() < b->peek();
 }
 
