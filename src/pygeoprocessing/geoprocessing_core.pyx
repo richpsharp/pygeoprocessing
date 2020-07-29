@@ -1806,7 +1806,7 @@ def raster_optimization(
                     prop_met_so_far[i] += active_val
 
                 if count % 100 == 0:
-                    debug_csv_file.write(f'{active_val}\n')
+                    debug_csv_file.write(f'{active_val},{goal_met_cutoffs_array[next_threshold_index]}\n')
                     debug_csv_file.flush()
                     LOGGER.debug(f'active_val: {active_val} target {goal_met_cutoffs_array[next_threshold_index]}')
                 if prop_met_so_far[i] < min_prop_left:
