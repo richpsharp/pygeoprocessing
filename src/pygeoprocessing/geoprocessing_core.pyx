@@ -1633,16 +1633,8 @@ def raster_optimization(
                 (yy.astype(numpy.int64)+numpy.int64(offset_data['yoff']))*n_cols +
                 (xx.astype(numpy.int64)+numpy.int64(offset_data['xoff'])))[
                     valid_mask].flatten()
-            sorted_data = numpy.diff(numpy.sort(base_data))
-            nonzero_sorted_data = sorted_data[sorted_data > 0]
-            if nonzero_sorted_data.size > 0:
-                min_eps = 1e-4 * numpy.min(nonzero_sorted_data)
-            else:
-                min_eps = 0
             # add enough randomness that same values are not the same
-            sort_args = numpy.argsort(
-                base_data + min_eps*numpy.random.random(base_data.shape),
-                axis=None)
+            sort_args = numpy.argsort(base_data, axis=None)
             buffer_data = (base_data.flatten()[sort_args]).astype(numpy.double)
             index_data = flat_indexes[sort_args].astype(numpy.int64)
             n_elements += buffer_data.size
