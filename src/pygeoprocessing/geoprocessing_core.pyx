@@ -1804,11 +1804,8 @@ def raster_optimization(
                 if active_val > 0:
                     prop_met_so_far[i] += active_val
 
-                if last_val != -1:
-                    LOGGER.debug(f'last val: {last_val}, active_val: {active_val}, delta: {last_val-active_val}')
-                    if last_val < active_val:
-                        LOGGER.error(f'last val was {last_val} but current val i {active_val} differnce of {last_val-active_val}')
-                last_val = active_val
+                if count % 100 == 0:
+                    LOGGER.debug(f'active_val: {active_val} target {goal_met_cutoffs_array[next_threshold_index]}')
                 if prop_met_so_far[i] < min_prop_left:
                     min_prop_left = prop_met_so_far[i]
             if (min_prop_left >
