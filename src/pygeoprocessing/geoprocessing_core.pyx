@@ -1725,7 +1725,6 @@ def raster_optimization(
 
     cdef int work_to_do = 1
     LOGGER.debug(f'about to start optimization loop. count is {count}')
-    debug_csv_file = open('debug_active_vals.csv', 'w')
     while work_to_do:
         min_prop_index = -1
         min_prop_met = 1.0  # it'll never be bigger than 1.0
@@ -1805,10 +1804,6 @@ def raster_optimization(
                 if active_val > 0:
                     prop_met_so_far[i] += active_val
 
-                if count % 100 == 0:
-                    debug_csv_file.write(f'{active_val},{goal_met_cutoffs_array[next_threshold_index]}\n')
-                    debug_csv_file.flush()
-                    LOGGER.debug(f'active_val: {active_val} target {goal_met_cutoffs_array[next_threshold_index]}')
                 if prop_met_so_far[i] < min_prop_left:
                     min_prop_left = prop_met_so_far[i]
             if (min_prop_left >
