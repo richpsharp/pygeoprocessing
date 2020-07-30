@@ -9,10 +9,10 @@
 
 template <class DATA_T> class FastFileIteratorIndex{
  private:
-    DATA_T* buffer = NULL;
-    long long* index_buffer = NULL;
     char* value_path = NULL;
     char* index_path = NULL;
+    DATA_T* buffer = NULL;
+    long long* index_buffer = NULL;
     DATA_T last_val = -1;
     // these offsets and sizes are in numbers of items instead of bytes, or
     // number of bytes / sizeof(DATA_T)
@@ -147,8 +147,7 @@ template <class DATA_T> class FastFileIteratorIndex{
 template <class DATA_T>
 int FastFileIteratorIndexCompare(FastFileIteratorIndex<DATA_T>* a,
                             FastFileIteratorIndex<DATA_T>* b) {
-    printf("a %.10e b %.10e", a->peek(), b->peek());
-    return a->peek() < b->peek();
+    return a->peek() > b->peek();
 }
 
 #endif  // SRC_PYGEOPROCESSING_FASTFILEITERATORINDEX_H_
