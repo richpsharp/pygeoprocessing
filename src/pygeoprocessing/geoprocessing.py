@@ -29,6 +29,7 @@ import shapely.ops
 import shapely.prepared
 import shapely.wkb
 
+
 class ReclassificationMissingValuesError(Exception):
     """Raised when a raster value is not a valid key to a dictionary.
 
@@ -42,6 +43,7 @@ class ReclassificationMissingValuesError(Exception):
         self.msg = msg
         self.missing_values = missing_values
         super().__init__(msg, missing_values)
+
 
 LOGGER = logging.getLogger(__name__)
 

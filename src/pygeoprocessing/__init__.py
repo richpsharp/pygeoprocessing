@@ -15,7 +15,7 @@ import pkg_resources
 
 __version__ = pkg_resources.get_distribution(__name__).version
 
-__all__ = ('calculate_slope', 'raster_band_percentile', 'raster_optimization'
+__all__ = ('calculate_slope', 'raster_band_percentile', 'raster_optimization',
            'ReclassificationMissingValuesError')
 
 for attrname in dir(geoprocessing):
