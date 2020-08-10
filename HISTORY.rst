@@ -1,6 +1,25 @@
 Release History
 ===============
 
+Unreleased Changes
+------------------
+* Added a custom exception class ``ReclassificationMissingValuesError`` to 
+  ``pygeoprocessing``. ``pygeoprocessing.reclassify_raster`` raises this
+  exception instead of ``ValueError`` when a raster pixel value is not
+  represented in ``value_map``. This custom exception provides a list of 
+  missing raster pixel values in a ``missing_values`` attribute that allows
+  the caller access to the pixel values that are missing through a Python type
+  rather than indirectly through an error message.
+* Correcting the docstring for ``pygeoprocessing.numpy_array_to_raster`` to
+  specify that the ``pixel_size`` parameter must be a tuple or list, not an
+  int.
+* ``pygeoprocessing.routing.delineate_watersheds_d8`` now has an optional
+  parameter ``write_diagnostic_vector``.  When ``True``, this parameter will
+  cause a new vector per outflow feature to be created in the ``working_dir``.
+  This parameter defaults to ``False``.  This is a change from prior behavior,
+  when the diagnostic vectors were always created, which could occupy a lot of
+  computational time under large outflow geometries.
+
 2.0.0 (05-19-2020)
 ------------------
 * Fixed an issue in ``warp_raster`` that would cause the warping of an signed

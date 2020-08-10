@@ -29,6 +29,20 @@ import shapely.ops
 import shapely.prepared
 import shapely.wkb
 
+class ReclassificationMissingValuesError(Exception):
+    """Raised when a raster value is not a valid key to a dictionary.
+
+    Attributes:
+        msg (str) - error message
+        missing_values (list) - a list of the missing values from the raster
+            that are not keys in the dictionary
+    """
+
+    def __init__(self, msg, missing_values):
+        self.msg = msg
+        self.missing_values = missing_values
+        super().__init__(msg, missing_values)
+
 LOGGER = logging.getLogger(__name__)
 
 # Used in joining finished TaskGraph Tasks.
@@ -1715,8 +1729,9 @@ def reclassify_raster(
         None
 
     Raises:
-        ValueError if ``values_required`` is ``True`` and a pixel value from
-           ``base_raster_path_band`` is not a key in ``attr_dict``.
+        ReclassificationMissingValuesError if ``values_required`` is ``True``
+        and a pixel value from ``base_raster_path_band`` is not a key in
+        ``value_map``.
 
     """
     if len(value_map) == 0:
@@ -1742,11 +1757,11 @@ def reclassify_raster(
             has_map = numpy.in1d(unique, keys)
             if not all(has_map):
                 missing_values = unique[~has_map]
-                raise ValueError(
-                    'The following %d raster values %s from "%s" do not have '
-                    'corresponding entries in the ``value_map``: %s' % (
-                        missing_values.size, str(missing_values),
-                        base_raster_path_band[0], str(value_map)))
+                raise ReclassificationMissingValuesError(
+                    f'The following {missing_values.size} raster values'
+                    f' {missing_values} from "{base_raster_path_band[0]}"'
+                    ' do not have corresponding entries in the ``value_map``:'
+                    f' {value_map}.', missing_values)
         index = numpy.digitize(original_values.ravel(), keys, right=True)
         return values[index].reshape(original_values.shape)
 
@@ -3609,7 +3624,7 @@ def numpy_array_to_raster(
     Args:
         base_array (numpy.array): a 2d numpy array.
         target_nodata (numeric): nodata value of target array, can be None.
-        pixel_size (int): square dimensions of pixel.
+        pixel_size (tuple): square dimensions (in ``(x, y)``) of pixel.
         origin (tuple/list): x/y coordinate of the raster origin.
         projection_wkt (str): target projection in wkt.
         target_path (str): path to raster to create that will be of the
