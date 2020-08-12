@@ -96,6 +96,7 @@ def _raster_calculator_worker(
         block_offset = block_offset_queue.get()
         if block_offset is None:
             # indicates this worker should terminate
+            result_array_shared_memory.close()
             return
 
         offset_list = (block_offset['yoff'], block_offset['xoff'])
@@ -564,7 +565,12 @@ def raster_calculator(
                 LOGGER.exception(f'unable to kill {worker.pid}')
         if shared_memory is not None:
             LOGGER.debug(f'unlink {shared_memory.name}')
-            shared_memory.unlink()
+            try:
+                shared_memory.unlink()
+            except Exception:
+                LOGGER.exception(
+                    f'unable to unlink shared memory object '
+                    f'{shared_memory.name}')
 
     if calc_raster_stats:
         payload = stats_worker_queue.get(True, _MAX_TIMEOUT)
