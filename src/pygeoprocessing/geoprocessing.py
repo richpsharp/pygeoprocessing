@@ -4,6 +4,7 @@ import collections
 import functools
 import logging
 import math
+import multiprocessing.shared_memory
 import os
 import pprint
 import queue
@@ -344,14 +345,26 @@ def raster_calculator(
     try:
         last_time = time.time()
 
+        block_offset_list = list(iterblocks(
+            (target_raster_path, 1), offset_only=True,
+            largest_block=largest_block))
+
         if calc_raster_stats:
             # if this queue is used to send computed valid blocks of
             # the raster to an incremental statistics calculator worker
             stats_worker_queue = queue.Queue()
             exception_queue = queue.Queue()
+
+            block_size_bytes = (
+                numpy.dtype(numpy.float64).itemsize *
+                block_offset_list[0]['win_xsize'] *
+                block_offset_list[0]['win_ysize'])
+
+            shared_memory = multiprocessing.shared_memory.SharedMemory(
+                create=True, size=block_size_bytes)
+
         else:
             stats_worker_queue = None
-            exception_queue = None
 
         if calc_raster_stats:
             # To avoid doing two passes on the raster to calculate standard
@@ -365,7 +378,7 @@ def raster_calculator(
             LOGGER.info('starting stats_worker')
             stats_worker_thread = threading.Thread(
                 target=geoprocessing_core.stats_worker,
-                args=(stats_worker_queue, exception_queue))
+                args=(stats_worker_queue, len(block_offset_list)))
             stats_worker_thread.daemon = True
             stats_worker_thread.start()
             LOGGER.info('started stats_worker %s', stats_worker_thread)
@@ -374,9 +387,7 @@ def raster_calculator(
         n_pixels = n_cols * n_rows
 
         # iterate over each block and calculate local_op
-        for block_offset in iterblocks(
-                (target_raster_path, 1), offset_only=True,
-                largest_block=largest_block):
+        for block_offset in block_offset_list:
             # read input blocks
             offset_list = (block_offset['yoff'], block_offset['xoff'])
             blocksize = (block_offset['win_ysize'], block_offset['win_xsize'])
@@ -420,19 +431,25 @@ def raster_calculator(
                     "shape %s but got this instead: %s" % (
                         blocksize, target_block))
 
+            target_band.WriteArray(
+                target_block, yoff=block_offset['yoff'],
+                xoff=block_offset['xoff'])
+
             # send result to stats calculator
             if stats_worker_queue:
                 # guard against an undefined nodata target
                 if nodata_target is not None:
-                    valid_block = target_block[target_block != nodata_target]
-                    if valid_block.size > 0:
-                        stats_worker_queue.put(valid_block)
-                else:
-                    stats_worker_queue.put(target_block.flatten())
+                    target_block = target_block[target_block != nodata_target]
+                target_block = target_block.astype(numpy.float64).flatten()
 
-            target_band.WriteArray(
-                target_block, yoff=block_offset['yoff'],
-                xoff=block_offset['xoff'])
+                shared_memory_array = numpy.ndarray(
+                    target_block.shape, dtype=target_block.dtype,
+                    buffer=shared_memory.buf)
+                shared_memory_array[:] = target_block[:]
+
+                stats_worker_queue.put((
+                    shared_memory_array.shape, shared_memory_array.dtype,
+                    shared_memory))
 
             pixels_processed += blocksize[0] * blocksize[1]
             last_time = _invoke_timed_callback(
@@ -444,8 +461,6 @@ def raster_calculator(
         LOGGER.info('100.0%% complete')
 
         if calc_raster_stats:
-            LOGGER.info("signaling stats worker to terminate")
-            stats_worker_queue.put(None)
             LOGGER.info("Waiting for raster stats worker result.")
             stats_worker_thread.join(_MAX_TIMEOUT)
             if stats_worker_thread.is_alive():
@@ -477,6 +492,8 @@ def raster_calculator(
                 stats_worker_thread.join(_MAX_TIMEOUT)
                 if stats_worker_thread.is_alive():
                     raise RuntimeError("stats_worker_thread.join() timed out")
+                shared_memory.close()
+                shared_memory.unlink()
 
             # check for an exception in the workers, otherwise get result
             # and pass to writer
