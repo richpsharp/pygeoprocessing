@@ -3,6 +3,11 @@ Release History
 
 Unreleased Changes
 ------------------
+* Modified ``pygeoprocessing.numpy_array_to_raster`` to take boolean arrays.
+* Modified ``pygeoprocessing.convolve_2d`` to guard against nonsensical queries
+  to both ``ignore_nodata_and_edges=True`` but also ``mask_nodata=False``.
+  A query of this combination now raises a ``ValueError`` to guard against
+  programmer error.
 * Added a custom exception class ``ReclassificationMissingValuesError`` to
   ``pygeoprocessing``. ``pygeoprocessing.reclassify_raster`` raises this
   exception instead of ``ValueError`` when a raster pixel value is not
@@ -22,6 +27,15 @@ Unreleased Changes
 * Added a ``pygeoprocessing.multiprocessing.raster_calculator`` function which
   matches the API and results of ``pygeoprocessing.raster_calculator`` but uses
   multiple processing cores to compute raster calculation blocks.
+  when the diagnostic vectors were always created, which could occupy
+  significant computational time under large outflow geometries.
+* Minor performance improvement to ``pygeoprocessing.convolve_2d`` by
+  preventing a pre-processing step that initialized temporary rasters with zero
+  values as well as added asynchronous work distribution for kernel/signal
+  block processing.
+* Modified logging message for ``pygeoprocessing.new_raster_from_base`` when
+  filling a raster such that an informative error message is printed with
+  context as to the function, file, status, and value being filled.
 
 2.0.0 (05-19-2020)
 ------------------
