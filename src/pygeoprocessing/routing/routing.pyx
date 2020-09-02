@@ -575,7 +575,7 @@ def _generate_read_bounds(offset_dict, raster_x_size, raster_y_size):
 
 def fill_pits(
         dem_raster_path_band, target_filled_dem_raster_path,
-        working_dir=None, max_pit_size=1000,
+        working_dir=None, max_pit_size=100,
         raster_driver_creation_tuple=DEFAULT_GTIFF_CREATION_TUPLE_OPTIONS):
     """Fill the pits in a DEM.
 
@@ -658,6 +658,10 @@ def fill_pits(
     # algorithm, it's written into the mask rasters to indicate which pixels
     # have already been processed
     cdef int feature_id
+
+    # marks how many pixels have been visited when searching for pits, used
+    # to threshold a resonable max
+    cdef int potential_pit_size
 
     # used for time-delayed logging
     cdef time_t last_log_time
@@ -827,7 +831,12 @@ def fill_pits(
                 # search the whole region even if a drain is encountered, so
                 # it can be entirely marked as processed and not re-accessed
                 # on later iterations
+                potential_pit_size = 0
                 while not search_queue.empty():
+                    potential_pit_size += 1
+                    if potential_pit_size > max_pit_size:
+                        search_queue.clear()
+                        break
                     xi_q = search_queue.front().xi
                     yi_q = search_queue.front().yi
                     search_queue.pop()
