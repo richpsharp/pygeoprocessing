@@ -575,7 +575,7 @@ def _generate_read_bounds(offset_dict, raster_x_size, raster_y_size):
 
 def fill_pits(
         dem_raster_path_band, target_filled_dem_raster_path,
-        working_dir=None,
+        working_dir=None, max_pit_size=1000,
         raster_driver_creation_tuple=DEFAULT_GTIFF_CREATION_TUPLE_OPTIONS):
     """Fill the pits in a DEM.
 
@@ -598,6 +598,9 @@ def fill_pits(
             it is created by this call. If None, a temporary directory is
             created by tempdir.mkdtemp which is removed after the function
             call completes successfully.
+        max_pit_size (int): pits that are larger than this size in pixels will
+            not be filled. This is to guard against large natural depressions
+            in a landscape that should not be filled.
         raster_driver_creation_tuple (tuple): a tuple containing a GDAL driver
             name string as the first element and a GDAL creation options
             tuple/list as the second. Defaults to a GTiff driver tuple
