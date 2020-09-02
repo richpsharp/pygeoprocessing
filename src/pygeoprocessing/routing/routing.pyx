@@ -835,7 +835,9 @@ def fill_pits(
                 while not search_queue.empty():
                     potential_pit_size += 1
                     if potential_pit_size > max_pit_size:
-                        search_queue.clear()
+                        # clear the search queue and quit
+                        while not search_queue.empty():
+                            search_queue.pop()
                         break
                     xi_q = search_queue.front().xi
                     yi_q = search_queue.front().yi
