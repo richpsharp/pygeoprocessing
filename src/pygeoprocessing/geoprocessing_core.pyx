@@ -1959,6 +1959,7 @@ def greedy_pixel_pick_by_area(
         pass
 
     raster_info = pygeoprocessing.get_raster_info(raster_path_band[0])
+    LOGGER.debug(f'*** why is nodata none: {raster_info}')
     nodata = raster_info['nodata'][raster_path_band[1]-1]
     n_pixels = math.prod(raster_info['raster_size'])
     n_cols = raster_info['raster_size'][0]
