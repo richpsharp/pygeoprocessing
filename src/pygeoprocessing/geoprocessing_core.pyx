@@ -1894,13 +1894,14 @@ def raster_optimization(
 
 
 def greedy_pixel_pick_by_area(
-        raster_path_band, area_raster_path_band, output_directory,
+        value_raster_path_band, area_raster_path_band, output_directory,
         area_step_report_list, target_suffix=None,
         heap_buffer_size=2**28, ffi_buffer_size=2**10):
     """Create a optimized raster selection given the target sum list.
 
     Args:
-        raster_path_band (tuple): (raster_path, band_id) tuple to select on
+        value_raster_path_band (tuple): (raster_path, band_id) tuple to sort
+            values on.
         area_raster_path_band (tuple): (raster_path, band_id) raster
             representing area per pixel for determining threshold cutoff.
         output_directory (str): path to a directory this function can
@@ -1939,7 +1940,7 @@ def greedy_pixel_pick_by_area(
 
     heapfile_list = []
     dim_set = set()
-    for raster_path_band in [raster_path_band, area_raster_path_band]:
+    for raster_path_band in [value_raster_path_band, area_raster_path_band]:
         n_cols, n_rows = pygeoprocessing.get_raster_info(
             raster_path_band[0])['raster_size']
         dim_set.add((n_cols, n_rows))
@@ -1951,16 +1952,16 @@ def greedy_pixel_pick_by_area(
 
     # sort base rasters and the normalized sum
     LOGGER.debug('sort rasters')
-    raster_id = os.path.splitext(os.path.basename(raster_path_band[0]))[0]
+    raster_id = os.path.splitext(os.path.basename(value_raster_path_band[0]))[0]
     working_sort_directory = os.path.join(output_directory, raster_id)
     try:
         os.makedirs(working_sort_directory)
     except OSError:
         pass
 
-    raster_info = pygeoprocessing.get_raster_info(raster_path_band[0])
+    raster_info = pygeoprocessing.get_raster_info(value_raster_path_band[0])
     LOGGER.debug(f'*** why is nodata none: {raster_info}')
-    nodata = raster_info['nodata'][raster_path_band[1]-1]
+    nodata = raster_info['nodata'][value_raster_path_band[1]-1]
     n_pixels = math.prod(raster_info['raster_size'])
     n_cols = raster_info['raster_size'][0]
 
@@ -1971,7 +1972,7 @@ def greedy_pixel_pick_by_area(
     cdef long long n_elements = 0
     for file_index, (offset_data, block_data) in enumerate(
             pygeoprocessing.iterblocks(
-                raster_path_band, largest_block=heap_buffer_size)):
+                value_raster_path_band, largest_block=heap_buffer_size)):
         pixels_processed += block_data.size
         if time.time() - last_update > 5.0:
             LOGGER.debug(
@@ -2044,7 +2045,7 @@ def greedy_pixel_pick_by_area(
 
     cdef int mask_nodata = 0
     pygeoprocessing.new_raster_from_base(
-        raster_path_band[0], mask_raster_path, gdal.GDT_Byte,
+        value_raster_path_band[0], mask_raster_path, gdal.GDT_Byte,
         [mask_nodata])
     cdef _ManagedRaster mask_managed_raster = _ManagedRaster(
         mask_raster_path, 1, 1)
