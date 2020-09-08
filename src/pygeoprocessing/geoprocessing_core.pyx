@@ -1932,7 +1932,7 @@ def greedy_pixel_pick_by_area(
         value_raster_fast_file_iterator_vector_ptr
     cdef long long n_cols = 0
 
-    LOGGER.debug('initializing optimization')
+    LOGGER.debug(f'initializing optimization for {value_raster_path_band}')
     try:
         os.makedirs(output_directory)
     except OSError:
