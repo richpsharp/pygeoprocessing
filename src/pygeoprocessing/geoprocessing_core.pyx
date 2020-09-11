@@ -1983,9 +1983,17 @@ def greedy_pixel_pick_by_area(
             range(block_data.shape[1]), range(block_data.shape[0]))
         # Don't keep data that's nodata or zero (should never be negative
         # but don't do those either)
-        valid_mask = (
-            ~numpy.isclose(block_data, nodata) &
-            (block_data > 0))
+        try:
+            LOGGER.debug(f'generate valid mask for block data of size {block_data.shape}')
+            LOGGER.debug(
+                f'inf {numpy.count_nonzero(numpy.isinf(block_data))}, '
+                f'nan {numpy.count_nonzero(numpy.isnan(block_data))}, ')
+            valid_mask = (
+                ~numpy.isclose(block_data, nodata) &
+                (block_data > 0))
+        except Exception:
+            LOGGER.exception(f'{block_data.dtype} {type(nodata)} {nodata}')
+            raise
         # -1 to reverse sort from large to small
         base_data = -block_data[valid_mask]
         if base_data.size == 0:
@@ -1998,6 +2006,7 @@ def greedy_pixel_pick_by_area(
             (xx.astype(numpy.int64)+numpy.int64(offset_data['xoff'])))[
                 valid_mask].flatten()
 
+        LOGGER.debug(f'sorting {base_data.size} elements')
         sort_args = numpy.argsort(base_data, axis=None)
         buffer_data = (base_data.flatten()[sort_args]).astype(numpy.double)
         index_data = flat_indexes[sort_args].astype(numpy.int64)
