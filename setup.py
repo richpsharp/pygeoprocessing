@@ -29,7 +29,7 @@ setup(
     long_description_content_type='text/x-rst',
     maintainer='Rich Sharp',
     maintainer_email='richpsharp@gmail.com',
-    url='https://github.com/natcap/pygeoprocessing',
+    url='https://github.com/therealspring/pygeoprocessing',
     packages=[
         'pygeoprocessing',
         'pygeoprocessing.routing',
@@ -85,6 +85,15 @@ setup(
             "pygeoprocessing.geoprocessing_core",
             sources=[
                 'src/pygeoprocessing/geoprocessing_core.pyx'],
+            include_dirs=[numpy.get_include()],
+            extra_compile_args=compiler_and_linker_args,
+            extra_link_args=compiler_and_linker_args,
+            language="c++"
+        ),
+        Extension(
+            "pygeoprocessing.optimization",
+            sources=[
+                'src/pygeoprocessing/optimization.pyx'],
             include_dirs=[numpy.get_include()],
             extra_compile_args=compiler_and_linker_args,
             extra_link_args=compiler_and_linker_args,

@@ -10,11 +10,13 @@ from . import geoprocessing
 from .geoprocessing import ReclassificationMissingValuesError
 from .geoprocessing_core import calculate_slope
 from .geoprocessing_core import raster_band_percentile
+from .optimization import greedy_pixel_pick_by_area
 import pkg_resources
 __version__ = pkg_resources.get_distribution(__name__).version
 
-__all__ = ('calculate_slope', 'raster_band_percentile', 
-           'ReclassificationMissingValuesError')
+__all__ = (
+    'calculate_slope', 'raster_band_percentile', 'greedy_pixel_pick_by_area',
+    'ReclassificationMissingValuesError')
 for attrname in dir(geoprocessing):
     attribute = getattr(geoprocessing, attrname)
     if isinstance(attribute, types.FunctionType):
