@@ -10,7 +10,7 @@ from . import geoprocessing
 from .geoprocessing import ReclassificationMissingValuesError
 from .geoprocessing_core import calculate_slope
 from .geoprocessing_core import raster_band_percentile
-from .optimization import greedy_pixel_pick_by_area
+from .geoprocessing_core import greedy_pixel_pick_by_area
 import pkg_resources
 __version__ = pkg_resources.get_distribution(__name__).version
 
