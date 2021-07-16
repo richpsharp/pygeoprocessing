@@ -4418,3 +4418,23 @@ class TestGeoprocessing(unittest.TestCase):
         numpy.testing.assert_almost_equal(
             pygeoprocessing.raster_to_numpy_array(int_out_path),
             array)
+
+    def test_optimization(self):
+        """PGP.geoprocessing: test reclassify raster with missing value."""
+        n_pixels = 9
+        pixel_matrix = numpy.ones((n_pixels, n_pixels), numpy.float32)
+        test_value = 0.5
+        pixel_matrix[:] = test_value
+        pixel_matrix[-1, 0] = test_value - 1  # making a bad value
+        target_nodata = -1
+        raster_path = os.path.join(self.workspace_dir, 'raster.tif')
+        area_path = os.path.join(self.workspace_dir, 'area.tif')
+        _array_to_raster(
+            pixel_matrix, target_nodata, raster_path)
+        selected_area_report_list = [1, 10, 100]
+        pygeoprocessing.greedy_pixel_pick_by_area(
+            (raster_path, 1), (area_path, 1),
+            selected_area_report_list, self.workspace_dir,
+            output_prefix='test_')
+        self.assertTrue(os.path.exists(
+            os.path.join(self.workspace_dir, 'test_results.csv')))
