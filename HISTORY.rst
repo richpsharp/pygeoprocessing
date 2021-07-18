@@ -7,6 +7,10 @@ Unreleased Changes
   exception if an input raster had an undefined nodata value and/or
   would cause an invalid result if the raster contained non-finite
   values.
+* Added a ``greedy_pixel_pick_by_area`` that takes a value raster,
+  an area raster, and a list of area totals to produce a set of
+  raster masks and summary table showing the most optimal selection
+  of value pixels for the given total area.
 
 2.3.0 (2021-06-21)
 ------------------
