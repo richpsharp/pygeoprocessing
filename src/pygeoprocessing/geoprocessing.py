@@ -4011,8 +4011,7 @@ def _create_latitude_m2_area_column(lat_min, lat_max, n_pixels):
 
 def greedy_pixel_pick_by_area(
         base_value_raster_path_band, area_per_pixel_raster_path_band,
-        selected_area_report_list, output_dir, output_prefix=None,
-        ffi_buffer_size=2**11, heap_buffer_size=2**28):
+        selected_area_report_list, output_dir, output_prefix=None):
     """Select pixels from base raster from largest to smallest.
 
     Creates a set of stepwise raster masks of pixel selection based on
@@ -4088,8 +4087,9 @@ def greedy_pixel_pick_by_area(
         sorted_area_sum, selected_area_report_list, side='left')
 
     os.makedirs(output_dir, exist_ok=True)
+    real_prefix = output_prefix if output_prefix is not None else ''
     table_path = os.path.join(
-        output_dir, f'{output_prefix}greedy_pixel_pick_result.csv')
+        output_dir, f'{real_prefix}greedy_pixel_pick_result.csv')
     with open(table_path, 'w') as csv_file:
         csv_file.write('area,total value\n')
     for area_threshold_index in area_threshold_index_array:
@@ -4098,7 +4098,7 @@ def greedy_pixel_pick_by_area(
         current_area = sorted_area_sum[area_threshold_index]
         mask_raster_path = os.path.join(
             output_dir,
-            f"{output_prefix if output_prefix is not None else ''}"
+            f"{real_prefix}"
             f"step_{current_area}.tif")
 
         valid_mask_array = numpy.zeros(valid_mask.size, dtype=numpy.int8)
