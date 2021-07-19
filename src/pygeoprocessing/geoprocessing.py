@@ -4085,7 +4085,7 @@ def greedy_pixel_pick_by_area(
     value_sum = numpy.cumsum(base_array[valid_mask][sort_indexes])
 
     area_threshold_index_array = numpy.searchsorted(
-        sorted_area_sum, selected_area_report_list, side='right')
+        sorted_area_sum, selected_area_report_list, side='left')
 
     os.makedirs(output_dir, exist_ok=True)
     table_path = os.path.join(
@@ -4101,9 +4101,9 @@ def greedy_pixel_pick_by_area(
             f"{output_prefix if output_prefix is not None else ''}"
             f"step_{current_area}.tif")
 
-        # make a 0 array and then set indexes in [sort_indexes[:area_threshold_index] to 1
         valid_mask_array = numpy.zeros(valid_mask.size, dtype=numpy.int8)
-        valid_mask_array[sort_indexes[:area_threshold_index]] = 1
+        # +1 here because area threshold index is right inclusive
+        valid_mask_array[sort_indexes[:area_threshold_index+1]] = 1
         mask_array = numpy.zeros(array_shape, dtype=numpy.int8)
         mask_array[valid_mask] = valid_mask_array
         numpy_array_to_raster(

@@ -1,4 +1,5 @@
 """pygeoprocessing.geoprocessing test suite."""
+import csv
 import itertools
 import os
 import pathlib
@@ -4421,8 +4422,7 @@ class TestGeoprocessing(unittest.TestCase):
 
     def test_greedy_pixel_pick(self):
         """PGP.optimization: test greedy pixel pick."""
-        test_dir = 'testgreedy'
-        os.makedirs(test_dir, exist_ok=True)
+        test_dir = self.workspace_dir
         n_pixels = 9
         xx, yy = numpy.meshgrid(
             numpy.arange(n_pixels), numpy.arange(n_pixels))
@@ -4437,11 +4437,27 @@ class TestGeoprocessing(unittest.TestCase):
 
         area_path = os.path.join(test_dir, 'area_raster.tif')
         _array_to_raster(
-            numpy.ones((n_pixels, n_pixels), numpy.float32), target_nodata, area_path)
+            numpy.ones((n_pixels, n_pixels), numpy.float32), target_nodata,
+            area_path)
 
         pygeoprocessing.greedy_pixel_pick_by_area(
             (value_path, 1), (area_path, 1),
             [1, 10, 100], test_dir, output_prefix='test_')
 
-        self.assertTrue(os.path.exists(os.path.join(
-            test_dir, 'test_greedy_pixel_pick_result.csv')))
+        table_path = os.path.join(
+            test_dir, 'test_greedy_pixel_pick_result.csv')
+        self.assertTrue(os.path.exists(table_path))
+        with open(table_path) as csvfile:
+            table_reader = csv.reader(csvfile)
+            next(table_reader)  # toss the header
+            for row in table_reader:
+                area, value = [float(x) for x in row]
+                raster_path = os.path.join(
+                    test_dir, f'test_step_{float(area)}.tif')
+                mask_array = pygeoprocessing.raster_to_numpy_array(
+                    raster_path)
+                self.assertEqual(numpy.sum(mask_array), area)
+                if area == 1:
+                    self.assertEqual(value, (n_pixels-1)**2)
+                if area == (n_pixels-1)**2:
+                    self.assertEqual(value, 1296)
